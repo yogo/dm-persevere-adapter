@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = ["README.txt", "LICENSE.txt", "History.txt"]
   s.files = ["History.txt", "LICENSE.txt", "Manifest.txt", "README.txt", "Rakefile", "lib/persevere_adapter.rb", "lib/persevere_adapter/version.rb", "spec/integration/persevere_adapter_spec.rb", "spec/spec.opts", "spec/spec_helper.rb", "tasks/install.rb", "tasks/spec.rb"]
   s.has_rdoc = true
-  s.homepage = %q{http://github.com/USERNAME/dm-persevere-adapter}
+  s.homepage = %q{http://github.com/irjudson/dm-persevere-adapter}
   s.rdoc_options = ["--main", "README.txt"]
   s.require_paths = ["lib"]
   s.rubyforge_project = %q{dm-persevere-adapter}
@@ -20,16 +20,19 @@ Gem::Specification.new do |s|
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 2
-  
+
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<dm-core> , [">= 0.9.10"])
+      s.add_runtime_dependency(%q<persevere> , [">= 1.0.3"])
       s.add_development_dependency(%q<hoe>, [">= 1.8.3"])
     else
       s.add_dependency(%q<dm-core>, [">= 0.9.10"])
+      s.add_dependency(%q<persevere>, [">= 1.0.3"])
       s.add_dependency(%q<hoe>, [">= 1.8.3"])
     end
   else
     s.add_dependency(%q<dm-core>, [">= 0.9.10"])
+    s.add_dependency(%q<persevere>, [">= 1.0.3"])
     s.add_dependency(%q<hoe>, [">= 1.8.3"])
   end
 end

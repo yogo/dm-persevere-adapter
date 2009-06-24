@@ -23,7 +23,7 @@ Hoe.spec(GEM_NAME) do |p|
   p.clean_globs |= %w[ log pkg coverage ]
   p.spec_extras = {
     :has_rdoc => true,
-    :extra_rdoc_files => %w[ README.txt LICENSE.txt TODO History.txt ]
+    :extra_rdoc_files => %w[ README.txt LICENSE.txt History.txt ]
   }
 
   p.extra_deps = [
