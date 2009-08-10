@@ -23,6 +23,7 @@ module DataMapper
       #
       # @api semipublic
       def create(resources)
+        connect if @persevere.nil?
         created = 0
         resources.each do |resource|
           #
@@ -90,6 +91,7 @@ module DataMapper
       #
       # @api semipublic
       def update(attributes, query)
+        connect if @persevere.nil?
         updated = 0
 
         if ! query.is_a?(DataMapper::Query)
@@ -146,6 +148,8 @@ module DataMapper
       #
       # @api semipublic
       def read_many(query)
+        connect if @persevere.nil?
+
         resources = Array.new
         json_query = make_json_query(query)
 
@@ -187,6 +191,8 @@ module DataMapper
       #
       # @api semipublic
       def delete(query)
+        connect if @persevere.nil?
+
         deleted = 0
 
         if ! query.is_a?(DataMapper::Query)
@@ -242,13 +248,20 @@ module DataMapper
         @options[:scheme] = @options[:adapter]
         @options.delete(:scheme)
 
-        uri = URI::HTTP.build(@options).to_s
-
-        @persevere = Persevere.new(uri)
         @resource_naming_convention = NamingConventions::Resource::Underscored
         @identity_maps = {}
         @classes = []
+        @persevere = nil
+        @prepped = false
+      end
 
+      def connect
+        uri = URI::HTTP.build(@options).to_s
+        @persevere = Persevere.new(uri)
+        prep_persvr unless @prepped
+      end
+
+      def prep_persvr
         # Because this is an AbstractAdapter and not a
         # DataObjectAdapter, we can't assume there are any schemas
         # present, so we retrieve the ones that exist and keep them up
@@ -260,9 +273,9 @@ module DataMapper
             junk,name = cname.split("/")
             @classes << name
           end
-
+          @prepped = true
         else
-          puts "Error retrieving existing tables: ", result.message
+          puts "Error retrieving existing tables: ", result
         end
       end
 
