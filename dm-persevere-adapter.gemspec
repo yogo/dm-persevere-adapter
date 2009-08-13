@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.description = %q{A DataMapper Adapter for persevere}
   s.email = ["irjudson [a] gmail [d] com"]
   s.extra_rdoc_files = ["README.txt", "LICENSE.txt", "History.txt"]
-  s.files = ["History.txt", "LICENSE.txt", "Manifest.txt", "README.txt", "Rakefile", "lib/persevere_adapter.rb", "lib/persevere_adapter/version.rb", "spec/integration/persevere_adapter_spec.rb", "spec/spec.opts", "spec/spec_helper.rb", "tasks/install.rb", "tasks/spec.rb"]
+  s.files = ["History.txt", "LICENSE.txt", "Manifest.txt", "README.txt", "Rakefile", "lib/persevere_adapter.rb", "spec/integration/persevere_adapter_spec.rb", "spec/spec.opts", "spec/spec_helper.rb", "tasks/install.rb", "tasks/spec.rb"]
   s.has_rdoc = true
   s.homepage = %q{http://github.com/irjudson/dm-persevere-adapter}
   s.rdoc_options = ["--main", "README.txt"]
