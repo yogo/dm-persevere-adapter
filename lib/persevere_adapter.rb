@@ -7,6 +7,7 @@ require 'persevere'
 module DataMapper
   module Adapters
     class PersevereAdapter < AbstractAdapter
+      VERSION='0.11'
       ##
       # Used by DataMapper to put records into a data-store: "INSERT"
       # in SQL-speak.  It takes an array of the resources (model
