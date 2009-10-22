@@ -3,7 +3,7 @@ Gem::Specification.new do |s|
   s.version = "0.13"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Ivan R. Judson"]
+  s.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team" ]
   s.date = %q{2009-02-19}
   s.description = %q{A DataMapper Adapter for persevere}
   s.email = ["irjudson [a] gmail [d] com"]
