@@ -154,7 +154,7 @@ module DataMapper
         resources = Array.new
         json_query = make_json_query(query)
 
-        tblname = Extlib::Inflection.classify(query.model).pluralize
+        tblname = Extlib::Inflection.classify(query.model)
         path = "/#{tblname}/#{json_query}"
 
         response = @persevere.retrieve(path)
@@ -172,8 +172,6 @@ module DataMapper
           end
 
           resources = query.model.load(results, query)
-        else
-          return false
         end
 
         query.filter_records(resources)
