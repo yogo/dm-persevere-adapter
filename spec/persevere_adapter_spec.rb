@@ -8,11 +8,27 @@ describe DataMapper::Adapters::PersevereAdapter do
     # This needs to point to a valid ldap server
     @adapter = DataMapper.setup(:default, { :adapter => 'persevere',
                                 :host => 'localhost',
-                                :port => '8080'
-                                })
-
+                                :port => '8080' }
+                                )
   end
 
   it_should_behave_like 'An Adapter'
+  
+  describe '#schema' do
+    it 'should return all of the schemas (in json) if no name is provided' do
+      @adapter.get_schema()
+    end 
 
+    it 'should return the json schema of the class specified' do
+      @adapter.get_schema("Object")
+    end
+    
+    it 'should return all of the schemas (in json) for a project if no name is provided' do
+      @adapter.get_schema(nil, "Class")
+    end 
+    
+    it 'should return all of the schemas (in json) if no name is provided' do
+      @adapter.get_schema("Object", "Class")
+    end 
+  end
 end

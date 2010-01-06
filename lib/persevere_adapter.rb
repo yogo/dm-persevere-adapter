@@ -7,7 +7,6 @@ require 'persevere'
 module DataMapper
   module Adapters
     class PersevereAdapter < AbstractAdapter
-      VERSION='0.13'
       ##
       # Used by DataMapper to put records into a data-store: "INSERT"
       # in SQL-speak.  It takes an array of the resources (model
@@ -213,6 +212,32 @@ module DataMapper
         return deleted
       end
 
+      ##
+      #
+      # Other methods for the Yogo Data Management Toolkit
+      #
+      ##
+      def get_schema(name = nil, project = nil)
+        path = nil
+        if name.nil? & project.nil?
+          path = "/Class/"
+        elsif project.nil?
+          path = "/Class/#{name}"
+        elsif name.nil?
+          path = "/Class/#{project}/"
+        else
+          path = "/Class/#{project}/#{name}"
+        end
+
+        response = @persevere.retrieve(path)
+
+        if response.code == "200"
+          return JSON.parse(response.body)
+        else
+          return nil
+        end        
+      end
+
       private
 
       ##
@@ -252,12 +277,16 @@ module DataMapper
         @classes = []
         @persevere = nil
         @prepped = false
+
+        connect
       end
 
       def connect
-        uri = URI::HTTP.build(@options).to_s
-        @persevere = Persevere.new(uri)
-        prep_persvr unless @prepped
+        if ! @prepped
+          uri = URI::HTTP.build(@options).to_s
+          @persevere = Persevere.new(uri)
+          prep_persvr unless @prepped
+        end
       end
 
       def prep_persvr
