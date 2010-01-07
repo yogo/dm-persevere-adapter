@@ -238,6 +238,28 @@ module DataMapper
         end        
       end
 
+      def put_schema(schema_hash, project = nil)
+        path = "/Class/"
+        
+        if ! project.nil?
+          if schema_hash.has_key?("id")
+            if ! schema_hash['id'].index(project)
+              schema_hash['id'] = "#{project}/#{schema_hash['id']}"
+            end
+          else
+            puts "You need an id key/value in the hash"
+          end
+        end
+              
+        response = @persevere.create(path, schema_hash)
+
+        if response.code == "201"
+          return JSON.parse(response.body)
+        else
+          return nil
+        end        
+      end
+      
       private
 
       ##
