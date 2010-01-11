@@ -2,6 +2,7 @@ require 'rubygems'
 require 'dm-core'
 require 'extlib'
 require 'json'
+
 require 'persevere'
 
 module DataMapper
@@ -35,15 +36,6 @@ module DataMapper
           #
           tblname = resource.model.storage_name
 
-          # if ! @classes.include?(tblname)
-          #   payload = {
-          #     'id' => tblname,
-          #     'extends' => { "$ref" => "/Class/Object" }
-          #   }
-          # 
-          #   response = @persevere.create("/Class/", payload)
-          # end
-
           path = "/#{tblname}/"
           payload = resource.attributes
           payload.delete(:id)
@@ -63,7 +55,6 @@ module DataMapper
               end
             end
 
-            # resource.id = rsrc_hash["id"].to_i
             serial.set!(resource, rsrc_hash["id"]) unless serial.nil?
 
             created += 1
@@ -109,7 +100,7 @@ module DataMapper
 
           result = @persevere.update(path, resource.attributes)
 
-          if result # good:
+          if result.code == "200"
             updated += 1
           else
             return false

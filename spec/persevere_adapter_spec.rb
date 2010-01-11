@@ -1,5 +1,38 @@
 require File.dirname(__FILE__) + '/spec_helper'
+require 'pathname'
+require 'rubygems'
+ 
+gem 'rspec'
+require 'spec'
+ 
+require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
+ 
+DataMapper.setup(:default, {
+                            :adapter => 'persevere',
+                            :host => 'localhost',
+                            :port => '8080',
+                            :uri => 'http://localhost:8080'
+                           })
+ 
+#
+# I need to make the Book class for Books to relate to
+#
+ 
+class Book
+  include DataMapper::Resource
+ 
+  # Persevere only does id's as strings.  
+  property :id, String, :serial => true
+  property :author, String
+  property :created_at, DateTime
+  property :title, String
+end
+
+require 'dm-core'
+require 'extlib'
+
 require DataMapper.root / 'lib' / 'dm-core' / 'spec' / 'adapter_shared_spec'
+require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
@@ -8,7 +41,7 @@ describe DataMapper::Adapters::PersevereAdapter do
                                             :host => 'localhost',
                                             :port => '8080' }
                                )
-
+     
     @test_schema_hash = {
       'id' => 'Vanilla',
       'properties' => {

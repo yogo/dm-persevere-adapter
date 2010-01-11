@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team"]
-  s.date = %q{2010-01-09}
+  s.date = %q{2010-01-11}
   s.description = %q{A DataMapper Adapter for persevere}
   s.email = ["irjudson [a] gmail [d] com"]
   s.extra_rdoc_files = [
@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
   s.summary = %q{A DataMapper Adapter for persevere}
   s.test_files = [
     "spec/persevere_adapter_spec.rb",
+     "spec/persevere_spec.rb",
      "spec/spec_helper.rb",
      "spec/unit/create_spec.rb",
      "spec/unit/delete_spec.rb",
@@ -55,16 +56,13 @@ Gem::Specification.new do |s|
 
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<dm-core>, [">= 0.10.1"])
-      s.add_runtime_dependency(%q<persevere>, [">= 1.1"])
       s.add_runtime_dependency(%q<extlib>, [">= 0"])
     else
       s.add_dependency(%q<dm-core>, [">= 0.10.1"])
-      s.add_dependency(%q<persevere>, [">= 1.1"])
       s.add_dependency(%q<extlib>, [">= 0"])
     end
   else
     s.add_dependency(%q<dm-core>, [">= 0.10.1"])
-    s.add_dependency(%q<persevere>, [">= 1.1"])
     s.add_dependency(%q<extlib>, [">= 0"])
   end
 end

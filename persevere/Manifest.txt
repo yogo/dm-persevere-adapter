@@ -1,0 +1,6 @@
+persevere/History.txt
+persevere/Manifest.txt
+persevere/README.txt
+Rakefile
+lib/persevere.rb
+test/test_persevere.rb
