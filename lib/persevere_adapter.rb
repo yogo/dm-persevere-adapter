@@ -34,7 +34,6 @@ module DataMapper
           # sort of table.
           #
           tblname = resource.model.storage_name
-          
 
           # if ! @classes.include?(tblname)
           #   payload = {
@@ -210,7 +209,7 @@ module DataMapper
           path = "/#{tblname}/#{resource.id}"
 
           result = @persevere.delete(path)
-          
+
           if result.code == "204" # ok
             deleted += 1
           end
@@ -373,15 +372,15 @@ module DataMapper
             end
 
             query_terms << case operator
-                           when :eql then "#{property.field()}=#{value}"
-                           when :lt then  "#{property.field()}<#{value}"
-                           when :gt then  "#{property.field()}>#{value}"
-                           when :lte then "#{property.field()}<=#{value}"
-                           when :gte then "#{property.field()}=>#{value}"
-                           when :not then "#{property.field()}!=#{value}"
-                           when :like then "#{property.field()}~'*#{value}*'"
-                           else puts "Unknown condition: #{operator}"
-                           end
+               when :eql then "#{property.field()}=#{value}"
+               when :lt then  "#{property.field()}<#{value}"
+               when :gt then  "#{property.field()}>#{value}"
+               when :lte then "#{property.field()}<=#{value}"
+               when :gte then "#{property.field()}=>#{value}"
+               when :not then "#{property.field()}!=#{value}"
+               when :like then "#{property.field()}~'*#{value}*'"
+               else puts "Unknown condition: #{operator}"
+               end
           end
         end
 

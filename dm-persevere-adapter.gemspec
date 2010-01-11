@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team"]
-  s.date = %q{2010-01-06}
+  s.date = %q{2010-01-09}
   s.description = %q{A DataMapper Adapter for persevere}
   s.email = ["irjudson [a] gmail [d] com"]
   s.extra_rdoc_files = [
@@ -26,7 +26,6 @@ Gem::Specification.new do |s|
      "VERSION",
      "dm-persevere-adapter.gemspec",
      "lib/persevere_adapter.rb",
-     "spec/integration/persevere_adapter_spec.rb",
      "spec/persevere_adapter_spec.rb",
      "spec/spec.opts",
      "spec/spec_helper.rb",
@@ -44,7 +43,6 @@ Gem::Specification.new do |s|
   s.test_files = [
     "spec/persevere_adapter_spec.rb",
      "spec/spec_helper.rb",
-     "spec/integration/persevere_adapter_spec.rb",
      "spec/unit/create_spec.rb",
      "spec/unit/delete_spec.rb",
      "spec/unit/read_spec.rb",

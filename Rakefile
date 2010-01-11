@@ -12,8 +12,18 @@ begin
     gemspec.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team" ]
     gemspec.rdoc_options = ["--main", "README.txt"]
     gemspec.add_dependency(%q<dm-core>, [">= 0.10.1"])
-    gemspec.add_dependency(%q<persevere>, [">= 1.1"])
+    # gemspec.add_dependency(%q<persevere>, [">= 1.1"])
     gemspec.add_dependency(%q<extlib>)
+  end
+  Jeweler::Tasks.new do |gemspec|
+    gemspec.name = %q{persevere}
+    gemspec.summary = %q{A ruby wrapper for persevere}
+    gemspec.description = %q{A ruby wrapper for persevere}
+    gemspec.email = ["irjudson [a] gmail [d] com"]
+    gemspec.homepage = %q{http://github.com/yogo/persevere}
+    gemspec.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team" ]
+    gemspec.rdoc_options = ["--main", "README.txt"]
+    gemspec.files = ["persevere/History.txt", "persevere/Manifest.txt", "persevere/README.txt", "Rakefile", "lib/persevere.rb", "spec/persevere_spec.rb"]
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
