@@ -26,6 +26,8 @@ module DataMapper
         connect if @persevere.nil?
         created = 0
         resources.each do |resource|
+          serial = resource.model.serial(self.name)
+
           #
           # This isn't the best solution but for an adapter, it'd be nice
           # to support objects being in *tables* instead of in one big icky
@@ -62,7 +64,8 @@ module DataMapper
               end
             end
 
-            resource.id = rsrc_hash["id"]
+            # resource.id = rsrc_hash["id"].to_i
+            serial.set!(resource, rsrc_hash["id"]) unless serial.nil?
 
             created += 1
           else
