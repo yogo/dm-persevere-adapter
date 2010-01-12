@@ -2,6 +2,19 @@ $LOAD_PATH << File.dirname(__FILE__)
 
 require Pathname(__FILE__).dirname.expand_path.parent + 'spec_helper'
 
+#
+# I need to make the Book class for Books to relate to
+#
+class Book
+  include DataMapper::Resource
+ 
+  # Persevere only does id's as strings.  
+  property :id, String, :serial => true
+  property :author, String
+  property :created_at, DateTime
+  property :title, String
+end
+
 describe 'A Persevere adapter' do
 
   before do

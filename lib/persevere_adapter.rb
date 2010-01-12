@@ -3,6 +3,7 @@ require 'dm-core'
 require 'extlib'
 require 'json'
 
+require 'model_json_support'
 require 'persevere'
 
 module DataMapper
@@ -193,8 +194,6 @@ module DataMapper
           resources = read_many(query)
         end
 
-        puts resources.inspect
-
         resources.each do |resource|
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.id}"
@@ -208,6 +207,74 @@ module DataMapper
         return deleted
       end
 
+      # Returns whether the storage_name exists.
+      #
+      # @param [String] storage_name
+      #   a String defining the name of a storage, for example a table name.
+      #
+      # @return [Boolean]
+      #   true if the storage exists
+      #
+      # @api semipublic
+      def storage_exists?(storage_name)
+        class_names = JSON.parse(@persevere.retrieve('/Class/[=id]'))
+        return true if class_names.include?(storage_name)
+        false
+      end
+      
+       ##
+       # Creates the persevere schema from the model.
+       #
+       # @param [DataMapper::Model] model
+       #   The model that corresponds to the storage schema that needs to be created.
+       #
+       # @api semipublic
+       def create_model_storage(model)
+         name       = self.name
+         properties = model.properties_with_subclasses(name)
+
+         return false if storage_exists?(model.storage_name(name))
+         return false if properties.empty?
+
+         schema_hash = model.to_json_schema_compatible_hash
+         
+         return true unless put_schema(schema_hash).nil?
+         false
+       end
+
+       ##
+       # Updates the persevere schema from the model.
+       #
+       # @param [DataMapper::Model] model
+       #   The model that corresponds to the storage schema that needs to be updated.
+       #
+       # @api semipublic
+        def upgrade_model_storage(model)
+          name       = self.name
+          properties = model.properties_with_subclasses(name)
+
+          if success = create_model_storage(model)
+            return properties
+          end
+
+          table_name = model.storage_name(name)
+          schema_hash = model.to_json_schema_compatible_hash
+        end
+
+       ##
+       # Destroys the persevere schema from the model.
+       #
+       # @param [DataMapper::Model] model
+       #   The model that corresponds to the storage schema that needs to be destroyed.
+       #
+       # @api semipublic
+       def destroy_model_storage(model)
+         return true unless supports_drop_table_if_exists? || storage_exists?(model.storage_name(name))
+         schema_hash = model.to_json_schema_compatible_hash
+         return true unless delete_schema(schema_hash).nil?
+         false
+       end
+       
       ##
       #
       # Other methods for the Yogo Data Management Toolkit
@@ -225,13 +292,7 @@ module DataMapper
           path = "/Class/#{project}/#{name}"
         end
 
-        response = @persevere.retrieve(path)
-
-        if response.code == "200"
-          return JSON.parse(response.body)
-        else
-          return nil
-        end        
+        @persevere.retrieve(path)      
       end
 
       def put_schema(schema_hash, project = nil)
@@ -247,15 +308,39 @@ module DataMapper
           end
         end
               
-        response = @persevere.create(path, schema_hash)
-
-        if response.code == "201"
-          return JSON.parse(response.body)
-        else
-          return nil
-        end        
+        @persevere.create(path, schema_hash)
       end
       
+      def update_schema(schema_hash, project = nil)
+        path = "/Class/"
+
+        if ! project.nil?
+          if schema_hash.has_key?("id")
+            if ! schema_hash['id'].index(project)
+              schema_hash['id'] = "#{project}/#{schema_hash['id']}"
+            end
+          else
+            puts "You need an id key/value in the hash"
+          end
+        end
+        
+        @persevere.update(path, schema_hash)
+      end
+      
+      def delete_schema(schema_hash, project = nil)
+        if ! project.nil?
+          if schema_hash.has_key?("id")
+            if ! schema_hash['id'].index(project)
+              schema_hash['id'] = "#{project}/#{schema_hash['id']}"
+            end
+          else
+            puts "You need an id key/value in the hash"
+          end
+        end
+        path = "/Class/#{schema_hash['id']}"
+        @persevere.delete(path)
+      end
+
       private
 
       ##
@@ -384,5 +469,6 @@ module DataMapper
         query
       end
     end
+    const_added(:PersevereAdapter)
   end
 end

@@ -34,10 +34,9 @@ class PersevereResult
 end
 
 class Persevere
-  VERSION = '1.1'
   HEADERS = { 'Accept' => 'application/json',
               'Content-Type' => 'application/json'
-            }
+            } unless defined?(HEADERS)
 
   attr_accessor :server_url, :pservr
 

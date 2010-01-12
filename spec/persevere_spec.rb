@@ -57,7 +57,6 @@ describe Persevere do
       result = @p.create('/Class/', @blobObj)
       result.code.should == "201"
       JSON.parse(result.body).should == @blobObj
-#      result.body.should == "\"Can not modify queries\""
       # This shouldn't be a 201, it should say something mean.
     end
   end
