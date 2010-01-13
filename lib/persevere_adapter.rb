@@ -7,8 +7,94 @@ require 'model_json_support'
 require 'persevere'
 
 module DataMapper
+    module Migrations
+      module PersevereAdapter
+        # @api private
+        def self.included(base)  
+          DataMapper.extend(Migrations::SingletonMethods)
+
+          [ :Repository, :Model ].each do |name|
+            DataMapper.const_get(name).send(:include, Migrations.const_get(name))
+          end
+        end
+
+        # Returns whether the storage_name exists.
+        #
+        # @param [String] storage_name
+        #   a String defining the name of a storage, for example a table name.
+        #
+        # @return [Boolean]
+        #   true if the storage exists
+        #
+        # @api semipublic
+        def storage_exists?(storage_name)
+          class_names = JSON.parse(@persevere.retrieve('/Class/[=id]').body)
+          return true if class_names.include?("Class/"+storage_name)
+          false
+        end
+
+         ##
+         # Creates the persevere schema from the model.
+         #
+         # @param [DataMapper::Model] model
+         #   The model that corresponds to the storage schema that needs to be created.
+         #
+         # @api semipublic
+         def create_model_storage(model)
+           name       = self.name
+           properties = model.properties_with_subclasses(name)
+
+           return false if storage_exists?(model.storage_name(name))
+           return false if properties.empty?
+
+           schema_hash = model.to_json_schema_compatible_hash
+
+           return true unless put_schema(schema_hash).nil?
+           false
+         end
+
+         ##
+         # Updates the persevere schema from the model.
+         #
+         # @param [DataMapper::Model] model
+         #   The model that corresponds to the storage schema that needs to be updated.
+         #
+         # @api semipublic
+          def upgrade_model_storage(model)
+            name       = self.name
+            properties = model.properties_with_subclasses(name)
+
+            if success = create_model_storage(model)
+              return properties
+            end
+
+            table_name = model.storage_name(name)
+            schema_hash = model.to_json_schema_compatible_hash
+          end
+
+         ##
+         # Destroys the persevere schema from the model.
+         #
+         # @param [DataMapper::Model] model
+         #   The model that corresponds to the storage schema that needs to be destroyed.
+         #
+         # @api semipublic
+         def destroy_model_storage(model)
+           return true unless storage_exists?(model.storage_name(name))
+           schema_hash = model.to_json_schema_compatible_hash
+           return true unless delete_schema(schema_hash).nil?
+           false
+         end
+      end # module PersevereAdapter
+    end # module Migrations
+    
   module Adapters
     class PersevereAdapter < AbstractAdapter
+      extend Chainable
+      extend Deprecate
+      
+      include Migrations::PersevereAdapter
+      
       ##
       # Used by DataMapper to put records into a data-store: "INSERT"
       # in SQL-speak.  It takes an array of the resources (model
@@ -207,74 +293,6 @@ module DataMapper
         return deleted
       end
 
-      # Returns whether the storage_name exists.
-      #
-      # @param [String] storage_name
-      #   a String defining the name of a storage, for example a table name.
-      #
-      # @return [Boolean]
-      #   true if the storage exists
-      #
-      # @api semipublic
-      def storage_exists?(storage_name)
-        class_names = JSON.parse(@persevere.retrieve('/Class/[=id]'))
-        return true if class_names.include?(storage_name)
-        false
-      end
-      
-       ##
-       # Creates the persevere schema from the model.
-       #
-       # @param [DataMapper::Model] model
-       #   The model that corresponds to the storage schema that needs to be created.
-       #
-       # @api semipublic
-       def create_model_storage(model)
-         name       = self.name
-         properties = model.properties_with_subclasses(name)
-
-         return false if storage_exists?(model.storage_name(name))
-         return false if properties.empty?
-
-         schema_hash = model.to_json_schema_compatible_hash
-         
-         return true unless put_schema(schema_hash).nil?
-         false
-       end
-
-       ##
-       # Updates the persevere schema from the model.
-       #
-       # @param [DataMapper::Model] model
-       #   The model that corresponds to the storage schema that needs to be updated.
-       #
-       # @api semipublic
-        def upgrade_model_storage(model)
-          name       = self.name
-          properties = model.properties_with_subclasses(name)
-
-          if success = create_model_storage(model)
-            return properties
-          end
-
-          table_name = model.storage_name(name)
-          schema_hash = model.to_json_schema_compatible_hash
-        end
-
-       ##
-       # Destroys the persevere schema from the model.
-       #
-       # @param [DataMapper::Model] model
-       #   The model that corresponds to the storage schema that needs to be destroyed.
-       #
-       # @api semipublic
-       def destroy_model_storage(model)
-         return true unless supports_drop_table_if_exists? || storage_exists?(model.storage_name(name))
-         schema_hash = model.to_json_schema_compatible_hash
-         return true unless delete_schema(schema_hash).nil?
-         false
-       end
-       
       ##
       #
       # Other methods for the Yogo Data Management Toolkit
@@ -468,7 +486,9 @@ module DataMapper
 
         query
       end
-    end
+    end # class PersevereAdapter
     const_added(:PersevereAdapter)
-  end
-end
+  end # module Adapters
+  
+
+end # module DataMapper
