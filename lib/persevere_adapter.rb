@@ -85,6 +85,7 @@ module DataMapper
            return true unless delete_schema(schema_hash).nil?
            false
          end
+
       end # module PersevereAdapter
     end # module Migrations
     
@@ -124,7 +125,7 @@ module DataMapper
           tblname = resource.model.storage_name
 
           path = "/#{tblname}/"
-          payload = resource.attributes
+          payload = resource.attributes.delete_if{ |key,value| value.nil? }
           payload.delete(:id)
 
           response = @persevere.create(path, payload)
@@ -185,7 +186,8 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.id}"
 
-          result = @persevere.update(path, resource.attributes)
+          payload = resource.attributes.delete_if{ |key,value| value.nil? }
+          result = @persevere.update(path, payload)
 
           if result.code == "200"
             updated += 1
