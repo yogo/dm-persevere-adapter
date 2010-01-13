@@ -125,7 +125,7 @@ module DataMapper
           tblname = resource.model.storage_name
 
           path = "/#{tblname}/"
-          payload = resource.attributes.delete_if{ |key,value| value.nil? }
+          payload = resource.attributes.reject{ |key,value| value.nil? }
           payload.delete(:id)
 
           response = @persevere.create(path, payload)
@@ -186,7 +186,8 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.id}"
 
-          payload = resource.attributes.delete_if{ |key,value| value.nil? }
+          payload = resource.attributes.reject{ |key,value| value.nil? }
+
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -312,7 +313,13 @@ module DataMapper
           path = "/Class/#{project}/#{name}"
         end
 
-        @persevere.retrieve(path)      
+        result = @persevere.retrieve(path)
+        
+        if result.code == "200"
+          return result.body
+        else
+          return false
+        end
       end
 
       def put_schema(schema_hash, project = nil)
@@ -327,24 +334,34 @@ module DataMapper
             puts "You need an id key/value in the hash"
           end
         end
-              
-        @persevere.create(path, schema_hash)
+     
+        result = @persevere.create(path, schema_hash)
+        if result.code == '201'
+          return JSON.parse(result.body)
+        else
+          return false
+        end
       end
       
       def update_schema(schema_hash, project = nil)
-        path = "/Class/"
 
-        if ! project.nil?
-          if schema_hash.has_key?("id")
-            if ! schema_hash['id'].index(project)
-              schema_hash['id'] = "#{project}/#{schema_hash['id']}"
-            end
-          else
-            puts "You need an id key/value in the hash"
-          end
+        id = schema_hash['id']
+        payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
+
+
+        if project.nil?
+          path = "/Class/#{id}"
+        else
+          path =  "/Class/#{project}/#{id}"
         end
-        
-        @persevere.update(path, schema_hash)
+        # debugger
+        result = @persevere.update(path, payload)
+    
+        if result.code == '200'
+          return result.body
+        else
+          return false
+        end
       end
       
       def delete_schema(schema_hash, project = nil)
@@ -358,7 +375,13 @@ module DataMapper
           end
         end
         path = "/Class/#{schema_hash['id']}"
-        @persevere.delete(path)
+        result = @persevere.delete(path)
+        
+        if result.code == "204"
+          return true
+        else
+          return false
+        end
       end
 
       private

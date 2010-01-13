@@ -72,7 +72,7 @@ describe Persevere do
     end
     
     it 'should 404 on a non-existent object' do
-      result = @p.retrieve('/Class/NotThere')
+      result = @p.retrieve('/Class/GetNotThere')
       result.code.should == "404"
       result.message.should == "Not Found"
     end
@@ -90,9 +90,10 @@ describe Persevere do
     end
     
     it 'should fail to modify a non-existent item' do
-      result = @p.update('/Class/NotThere', @blobObj)
+      result = @p.update('/Class/NonExistent', @blobObj)
       result.code.should == "500"
       result.body.should == "\"id does not match location\""
+      @p.delete('/Class/NonExistent') # A bug(?) in Persevere makes a broken NonExistent class.
       # This should be a 404 and not throw a persevere server exception
     end
   end
@@ -109,10 +110,9 @@ describe Persevere do
     
     it 'should fail to delete a non-existent item' do
       result = @p.delete('/Class/NotThere')
-      result.code.should == "204"
-      result.message.should == "No Content"
-      result.body.should be_nil
-      # This should be a 404 and not fail silently with a 204
+      result.code.should == "404"
+      result.message.should == "Not Found"
+      result.body.should == "\"Class/NotThere not found\""
     end
   end
 end
