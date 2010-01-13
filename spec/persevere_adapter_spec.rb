@@ -1,11 +1,8 @@
 require File.dirname(__FILE__) + '/spec_helper' 
 gem 'rspec'
 require 'spec'
-require 'dm-core'
-require 'extlib'
 
 require 'ruby-debug'
-
 require DataMapper.root / 'lib' / 'dm-core' / 'spec' / 'adapter_shared_spec'
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
@@ -60,12 +57,11 @@ describe DataMapper::Adapters::PersevereAdapter do
 
   describe 'migrations' do
     it 'should create the book storage' do
-      debugger
       Bozon.auto_migrate!
     end
   end
 
-  it_should_behave_like 'An Adapter'
+  it_should_behave_like 'An Adapter Foo'
 
   describe '#put_schema' do
     it 'should create the json schema for the hash' do
