@@ -2,8 +2,6 @@
 
 A DataMapper adapter for Persevere (http://www.persvr.org/)
 
-This requires the persevere gem (http://github.com/irjudson/persevere) which provides a ruby interface to Persevere.
-
 == Usage
 
 DM Persevere Adapter is very simple and very similar to the REST
@@ -21,6 +19,9 @@ DataMapper.setup(:default, {
                    :host => 'localhost',
                    :port => '8080'
                  })
+                 
+# Or, 
+# DataMapper.setup(:default, "persevere://localhost:8080")                 
 
 class MyUser
   include DataMapper::Resource
@@ -57,6 +58,8 @@ production:
 
 == Code
 
+MyUser.auto_migrate!
+
 # Create
 user = MyUser.new(:username => "dmtest", :uuid => UUID.random_create().to_s,
                   :name => "DataMapper Test", :homedirectory => "/home/dmtest",
@@ -81,5 +84,5 @@ puts "Result: #{result}"
 
 == To Do:
 
-- Make a do-adapter for persevere.
 - Cleanup Documentation
+- Add more negative / failure tests
