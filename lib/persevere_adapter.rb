@@ -3,15 +3,23 @@ require 'dm-core'
 require 'dm-aggregates'
 require 'extlib'
 require 'json'
+require 'bigdecimal'
 
 require 'model_json_support'
 require 'persevere'
+
+class BigDecimal
+  alias to_json_old to_json
+  
+  def to_json
+    to_s
+  end
+end
 
 module DataMapper
   module Aggregates
     module PersevereAdapter
       def aggregate(query)
-        
         records = []
         fields = query.fields
         field_size = fields.size
@@ -24,9 +32,10 @@ module DataMapper
         response = @persevere.retrieve(path)
 
         if response.code == "200"
-          results = JSON.parse(response.body)
-          results.each do |rsrc_hash|
-           row = query.fields.zip(rsrc_hash.values).map do |field, value|
+          # results = JSON.parse(response.body)
+          results = [response.body]
+          results.each do |row_of_results|
+           row = query.fields.zip([row_of_results].flatten).map do |field, value|
               if field.respond_to?(:operator)
                 send(field.operator, field.target, value)
               else
@@ -44,19 +53,23 @@ module DataMapper
       def count(property, value)
         value.to_i
       end
-
+      
       def min(property, value)
         property.typecast(value)
       end
-
+      
       def max(property, value)
         property.typecast(value)
       end
-
+      
       def avg(property, value)
-        property.type == Integer ? value.to_f : property.typecast(value)
+        # debugger
+        values = JSON.parse(value).compact
+        result = values.inject(0.0){|sum,i| sum+=i }/values.length
+        puts "#{property.type}:    :#{property.inspect}"
+        property.type == Integer ? result.to_f : property.typecast(result)
       end
-
+      
       def sum(property, value)
         property.typecast(value)
       end
@@ -152,6 +165,32 @@ module DataMapper
 
       include Migrations::PersevereAdapter
 
+      # Default types for all data object based adapters.
+      #
+      # @return [Hash] default types for data objects adapters.
+      #
+      # @api private
+      def type_map
+        length    = Property::DEFAULT_LENGTH
+        precision = Property::DEFAULT_PRECISION
+        scale     = Property::DEFAULT_SCALE_BIGDECIMAL
+
+        @type_map ||= {
+          Types::Serial => { :primitive => 'string' },
+          Types::Boolean => { :primitive => 'boolean' },
+          Integer     => { :primitive => 'integer'},
+          String      => { :primitive => 'string'},
+          Class       => { :primitive => 'string'},
+          BigDecimal  => { :primitive => 'number'},
+          Float       => { :primitive => 'number'},
+          DateTime    => { :primitive => 'string'},
+          Date        => { :primitive => 'string'},
+          Time        => { :primitive => 'string'},
+          TrueClass   => { :primitive => 'boolean'},
+          Types::Text => { :primitive => 'string'}
+        }.freeze
+      end
+      
       ##
       # Used by DataMapper to put records into a data-store: "INSERT"
       # in SQL-speak.  It takes an array of the resources (model
@@ -181,7 +220,8 @@ module DataMapper
           tblname = resource.model.storage_name
 
           path = "/#{tblname}/"
-          payload = resource.attributes.reject{ |key,value| value.nil? }
+          payload = resource.attributes
+          
           payload.delete(:id)
 
           response = @persevere.create(path, payload)
@@ -532,7 +572,8 @@ module DataMapper
       #
       # @api semipublic
       def make_json_query(query)
-
+        # debugger
+        # puts query.inspect
         def process_in(value, candidate_set)
           result_string = Array.new
           candidate_set.to_a.each do |candidate|
@@ -545,21 +586,26 @@ module DataMapper
           end
         end
 
-        def process_condition(condition)  
-          case condition.slug
+        def process_condition(condition)
+          case condition
             # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
             # without regular expressions, the like operator is inordinately challenging hence we pass it back
             # when :like then "RegExp(\"#{condition.value.gsub!('%', '*')}\").test(#{condition.subject.name})"
             # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
-            when :regexp then []
-            when :like then []
-            when :and then "(#{condition.operands.map { |op| process_condition(op) }.join("&")})"
-            when :or then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
-            when :not then 
+            when DataMapper::Query::Conditions::RegexpComparison then []
+            when DataMapper::Query::Conditions::LikeComparison then []
+            when DataMapper::Query::Conditions::AndOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("&")})"
+            when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
+            when DataMapper::Query::Conditions::NotOperation then 
               inside = process_condition(condition.operand) 
               inside.empty? ? [] : "!(%s)" % inside
-            when :in then process_in(condition.subject.name, condition.value)
-            when :eql then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')
+            when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
+            when DataMapper::Query::Conditions::EqualToComparison then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')
+            when Array
+               old_statement, bind_values = condition
+               statement = old_statement.dup
+               bind_values.each{ |bind_value| statement.sub!('?', bind_value.to_s) }
+               statement.gsub(' ', '')
             else condition.to_s.gsub(' ', '')
           end
         end
@@ -567,17 +613,38 @@ module DataMapper
         json_query = ""
         query_terms = Array.new
         order_operations = Array.new
+        field_ops = Array.new
         headers = Hash.new
 
-        query.conditions.each do |condition| 
-#          puts "+++ SQL: #{condition.to_s}"
+        query.conditions.each do |condition|
           query_terms << process_condition(condition) 
         end
 
         if query_terms.flatten.length != 0
           json_query += "[?#{query_terms.join("][?")}]"
         end
-
+        
+        query.fields.each do |field|
+          field_ops << case field.operator
+            when :count then 
+              if field.target.is_a?(DataMapper::Property)
+                "[?#{field.target.name}!=undefined].length"
+              else # field.target is all.
+                ".length"
+              end
+            when :min
+              ".min(?#{field.target.name})"
+            when :max
+              ".max(?#{field.target.name})"
+            when :sum
+              ".sum(?#{field.target.name})"
+            when :avg
+              "[=#{field.target.name}]"
+          end
+        end
+           
+        json_query += field_ops.join("")
+        
         if query.order && query.order.any?
           query.order.map do |direction|
             order_operations << case direction.operator
@@ -595,7 +662,8 @@ module DataMapper
         if offset != 0 || !limit.nil?
           headers.merge!({"Range", "items=#{offset}-#{limit}"})
         end
-
+        # puts "#{query.inspect}"
+        puts json_query
         return json_query, headers
       end
     end # class PersevereAdapter
