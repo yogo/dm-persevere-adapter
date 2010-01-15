@@ -167,6 +167,15 @@ describe Persevere do
         JSON.parse(result.body).length.should == 10
     end
     
+    it "should return the first 2 objects" do
+      result = @p.retrieve('/Yogo/', {'Range' => "items=0-1"})
+      result.code.should == '206'
+      json = JSON.parse(result.body)
+      json.length.should == 2
+      json[0]['id'].should == '1'
+      json[1]['id'].should == '2'
+    end
+    
     it "should return 21 and up objects" do
       result = @p.retrieve('/Yogo/', {'Range' => 'items=20-'})
       result.code.should == '206'

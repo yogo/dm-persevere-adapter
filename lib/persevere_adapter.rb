@@ -295,10 +295,9 @@ module DataMapper
 
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-        puts path
+        
         response = @persevere.retrieve(path, headers)
-
-        if response.code == "200"
+        if response.code.match(/20?/)
           results = JSON.parse(response.body)
           results.each do |rsrc_hash|
             # Typecast attributes, DM expects them properly cast
@@ -312,9 +311,10 @@ module DataMapper
 
           resources = query.model.load(results, query)
         end
-        # debugger
-        # query.filter_records(resources)
-        resources
+
+        # We could almost elimate this if regexp was working in persevere.
+        query.filter_records(resources)
+        # resources
       end
 
       alias :read :read_many
@@ -531,7 +531,6 @@ module DataMapper
       #   The DataMapper query object passed in
       #
       # @api semipublic
-
       def make_json_query(query)
 
         def process_in(value, candidate_set)
@@ -545,7 +544,7 @@ module DataMapper
             "#{value}=''"
           end
         end
-        
+
         def process_condition(condition)  
           case condition.slug
             # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
@@ -564,12 +563,12 @@ module DataMapper
             else condition.to_s.gsub(' ', '')
           end
         end
-        
+
         json_query = ""
         query_terms = Array.new
         order_operations = Array.new
         headers = Hash.new
-                
+
         query.conditions.each do |condition| 
 #          puts "+++ SQL: #{condition.to_s}"
           query_terms << process_condition(condition) 
@@ -578,7 +577,7 @@ module DataMapper
         if query_terms.flatten.length != 0
           json_query += "[?#{query_terms.join("][?")}]"
         end
-                
+
         if query.order && query.order.any?
           query.order.map do |direction|
             order_operations << case direction.operator
@@ -587,19 +586,16 @@ module DataMapper
             end
           end
         end
-            
+
         json_query += order_operations.join("")
+
+        offset = query.offset.to_i
+        limit = query.limit.nil? ? nil : query.limit.to_i + offset - 1
         
-#        puts "JSON QUERY: #{json_query}"
-                
-        # if query.offset.to_i > 0 || !query.limit.nil?
-        #   offset = query.offset || '0'
-        #   limit = query.limit.nil? ? '' : query.limit.to_i + offset - 1
-        # 
-        #   headers.merge!({'Range' => "items=#{offset}-#{limit}"})
-        #   puts headers.inspect
-        # end
-                
+        if offset != 0 || !limit.nil?
+          headers.merge!({"Range", "items=#{offset}-#{limit}"})
+        end
+
         return json_query, headers
       end
     end # class PersevereAdapter
