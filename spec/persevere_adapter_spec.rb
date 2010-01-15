@@ -12,7 +12,7 @@ describe DataMapper::Adapters::PersevereAdapter do
     @adapter = DataMapper.setup(:default, { :adapter => 'persevere', :host => 'localhost', :port => '8080' })
     @repository = DataMapper.repository(@adapter.name)
 
-    class Bozon
+    class ::Bozon
       include DataMapper::Resource
 
       # Persevere only does id's as strings.  
@@ -150,5 +150,21 @@ describe DataMapper::Adapters::PersevereAdapter do
 
   describe 'aggregates' do
     it 'should return the number of items found when .count is called'
+  end
+
+  describe 'limiting and offsets' do
+    before(:all) do
+      Bozon.auto_migrate!
+      (0..99).each{|i| Bozon.create!(:author => i, :title => i)}
+    end
+    
+    it "should limit" do
+      result = Bozon.all(:limit => 2)
+      result.length.should == 2
+    end
+    
+    after(:all) do
+      Bozon.auto_migrate_down!
+    end
   end
 end

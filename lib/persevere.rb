@@ -13,6 +13,23 @@ require 'uri'
 require 'rubygems'
 require 'json'
 
+# Ugly Monkey patching because Persever uses non-standard content-range headers.
+module Net
+  module HTTPHeader
+    alias old_content_range content_range
+    # Returns a Range object which represents Content-Range: header field.
+    # This indicates, for a partial entity body, where this fragment
+    # fits inside the full entity body, as range of byte offsets.
+    def content_range
+      return nil unless @header['content-range']
+       m = %r<bytes\s+(\d+)-(\d+)/(\d+|\*)>i.match(self['Content-Range']) or
+           return nil
+       m[1].to_i .. m[2].to_i + 1
+    end
+
+  end
+end
+
 class PersevereResult
   attr_reader :location, :code, :message, :body
 
@@ -49,7 +66,7 @@ class Persevere
 
   # Pass in a resource hash
   def create(path, resource, headers = {})
-    json_blob = resource.to_json
+    json_blob = resource.reject{|key,value| value.nil? }.to_json
     response = nil
     while response.nil?
       begin
@@ -69,7 +86,7 @@ class Persevere
         response = @persevere.send_request('GET', path, nil, HEADERS.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-        puts "Persevere Create Failed: #{e}, Trying again."
+        puts "Persevere Retrieve Failed: #{e}, Trying again."
       end
     end
     return PersevereResult.make(response)

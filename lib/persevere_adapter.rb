@@ -235,12 +235,12 @@ module DataMapper
         connect if @persevere.nil?
 
         resources = Array.new
-        json_query = make_json_query(query)
+        json_query, headers = make_json_query(query)
 
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-
-        response = @persevere.retrieve(path)
+        puts path
+        response = @persevere.retrieve(path, headers)
 
         if response.code == "200"
           results = JSON.parse(response.body)
@@ -256,8 +256,9 @@ module DataMapper
 
           resources = query.model.load(results, query)
         end
-
-        query.filter_records(resources)
+        # debugger
+        # query.filter_records(resources)
+        resources
       end
 
       alias :read :read_many
@@ -477,12 +478,17 @@ module DataMapper
 
       def make_json_query(query)
         query_terms = Array.new
+        headers     = Hash.new
 
         conditions = query.conditions
 
         conditions.each do |condition|
           operator, property, bind_value = condition
-          if ! property.nil? && !bind_value.nil?
+          # puts condition.inspect
+          # puts operator.inspect
+          # puts property.inspect
+          # puts bind_value.inspect
+          if !property.nil? && !bind_value.nil?
             v = property.typecast(bind_value)
             if v.is_a?(String)
               value = "'#{bind_value}'"
@@ -503,13 +509,24 @@ module DataMapper
           end
         end
 
-        if query_terms.length != 0
-          query = "?#{query_terms.join("&")}"
-        else
-          query = ""
-        end
+        puts query_terms.inspect
 
-        query
+        if query_terms.length != 0
+          # json_query = "?#{query_terms.join("&")}"
+          json_query = "[?#{query_terms.join("][?")}]"
+        else
+          json_query = ""
+        end
+        # 
+        # if query.offset.to_i > 0 || !query.limit.nil?
+        #   offset = query.offset || '0'
+        #   limit = query.limit.nil? ? '' : query.limit.to_i + offset - 1
+        # 
+        #   headers.merge!({'Range' => "items=#{offset}-#{limit}"})
+        #   puts headers.inspect
+        # end
+        puts json_query
+        return json_query, headers
       end
     end # class PersevereAdapter
     const_added(:PersevereAdapter)

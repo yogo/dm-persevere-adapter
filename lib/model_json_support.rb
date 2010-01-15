@@ -21,9 +21,10 @@ module DataMapper
   class Property
     def to_json_schema_hash
       json_hash = { "type" => to_json_type }
-      { "optional" => true }.merge(json_hash) unless required? == true
+      json_hash.merge!({ "optional" => true }) unless required? == true
       # MIN
       # MAX
+      json_hash
     end
     
     private
