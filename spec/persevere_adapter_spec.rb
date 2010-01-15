@@ -2,9 +2,13 @@ require File.dirname(__FILE__) + '/spec_helper'
 gem 'rspec'
 require 'spec'
 
-require 'ruby-debug'
 require DataMapper.root / 'lib' / 'dm-core' / 'spec' / 'adapter_shared_spec'
+agg_dir = path_to("dm-aggregates", "0.10.2")[0]
+require agg_dir / 'spec' / 'public' / 'shared' / 'aggregate_shared_spec'
+
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
+
+require 'ruby-debug'
 
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
@@ -55,7 +59,6 @@ describe DataMapper::Adapters::PersevereAdapter do
       }
     }
   end
-
 
   it_should_behave_like 'An Adapter'
 
@@ -149,7 +152,9 @@ describe DataMapper::Adapters::PersevereAdapter do
   end
 
   describe 'aggregates' do
-    it 'should return the number of items found when .count is called'
+    it_should_behave_like 'It Has Setup Resources'
+    #it_should_behave_like 'An Aggregatable Class'
+
   end
 
   describe 'limiting and offsets' do

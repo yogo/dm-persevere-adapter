@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'dm-core'
+require 'dm-aggregates'
 require 'extlib'
 require 'json'
 
@@ -7,95 +8,150 @@ require 'model_json_support'
 require 'persevere'
 
 module DataMapper
-    module Migrations
-      module PersevereAdapter
-        # @api private
-        def self.included(base)  
-          DataMapper.extend(Migrations::SingletonMethods)
+  module Aggregates
+    module PersevereAdapter
+      def aggregate(query)
+        
+        records = []
+        fields = query.fields
+        field_size = fields.size
+        
+        connect if @persevere.nil?
+        resources = Array.new
+        json_query = make_json_query(query)
+        path = "/#{query.model.storage_name}/#{json_query}"
 
-          [ :Repository, :Model ].each do |name|
-            DataMapper.const_get(name).send(:include, Migrations.const_get(name))
+        response = @persevere.retrieve(path)
+
+        if response.code == "200"
+          results = JSON.parse(response.body)
+          results.each do |rsrc_hash|
+           row = query.fields.zip(rsrc_hash.values).map do |field, value|
+              if field.respond_to?(:operator)
+                send(field.operator, field.target, value)
+              else
+                field.typecast(value)
+              end
+            end            
+            records << (field_size > 1 ? row : row[0])
           end
         end
+        records
+      end # aggregate method
+      
+      private
+      
+      def count(property, value)
+        value.to_i
+      end
 
-        # Returns whether the storage_name exists.
-        #
-        # @param [String] storage_name
-        #   a String defining the name of a storage, for example a table name.
-        #
-        # @return [Boolean]
-        #   true if the storage exists
-        #
-        # @api semipublic
-        def storage_exists?(storage_name)
-          class_names = JSON.parse(@persevere.retrieve('/Class/[=id]').body)
-          return true if class_names.include?("Class/"+storage_name)
-          false
+      def min(property, value)
+        property.typecast(value)
+      end
+
+      def max(property, value)
+        property.typecast(value)
+      end
+
+      def avg(property, value)
+        property.type == Integer ? value.to_f : property.typecast(value)
+      end
+
+      def sum(property, value)
+        property.typecast(value)
+      end
+    end # module PersevereAdapter
+  end # module Aggregates
+
+  module Migrations
+    module PersevereAdapter
+      # @api private
+      def self.included(base)  
+        DataMapper.extend(Migrations::SingletonMethods)
+
+        [ :Repository, :Model ].each do |name|
+          DataMapper.const_get(name).send(:include, Migrations.const_get(name))
+        end
+      end
+
+      # Returns whether the storage_name exists.
+      #
+      # @param [String] storage_name
+      #   a String defining the name of a storage, for example a table name.
+      #
+      # @return [Boolean]
+      #   true if the storage exists
+      #
+      # @api semipublic
+      def storage_exists?(storage_name)
+        class_names = JSON.parse(@persevere.retrieve('/Class/[=id]').body)
+        return true if class_names.include?("Class/"+storage_name)
+        false
+      end
+
+      ##
+      # Creates the persevere schema from the model.
+      #
+      # @param [DataMapper::Model] model
+      #   The model that corresponds to the storage schema that needs to be created.
+      #
+      # @api semipublic
+      def create_model_storage(model)
+        name       = self.name
+        properties = model.properties_with_subclasses(name)
+
+        return false if storage_exists?(model.storage_name(name))
+        return false if properties.empty?
+
+        schema_hash = model.to_json_schema_compatible_hash
+
+        return true unless put_schema(schema_hash).nil?
+        false
+      end
+
+      ##
+      # Updates the persevere schema from the model.
+      #
+      # @param [DataMapper::Model] model
+      #   The model that corresponds to the storage schema that needs to be updated.
+      #
+      # @api semipublic
+      def upgrade_model_storage(model)
+        name       = self.name
+        properties = model.properties_with_subclasses(name)
+
+        if success = create_model_storage(model)
+          return properties
         end
 
-         ##
-         # Creates the persevere schema from the model.
-         #
-         # @param [DataMapper::Model] model
-         #   The model that corresponds to the storage schema that needs to be created.
-         #
-         # @api semipublic
-         def create_model_storage(model)
-           name       = self.name
-           properties = model.properties_with_subclasses(name)
+        table_name = model.storage_name(name)
+        schema_hash = model.to_json_schema_compatible_hash
+      end
 
-           return false if storage_exists?(model.storage_name(name))
-           return false if properties.empty?
+      ##
+      # Destroys the persevere schema from the model.
+      #
+      # @param [DataMapper::Model] model
+      #   The model that corresponds to the storage schema that needs to be destroyed.
+      #
+      # @api semipublic
+      def destroy_model_storage(model)
+        return true unless storage_exists?(model.storage_name(name))
+        schema_hash = model.to_json_schema_compatible_hash
+        return true unless delete_schema(schema_hash).nil?
+        false
+      end
 
-           schema_hash = model.to_json_schema_compatible_hash
+    end # module PersevereAdapter
+  end # module Migrations
 
-           return true unless put_schema(schema_hash).nil?
-           false
-         end
-
-         ##
-         # Updates the persevere schema from the model.
-         #
-         # @param [DataMapper::Model] model
-         #   The model that corresponds to the storage schema that needs to be updated.
-         #
-         # @api semipublic
-          def upgrade_model_storage(model)
-            name       = self.name
-            properties = model.properties_with_subclasses(name)
-
-            if success = create_model_storage(model)
-              return properties
-            end
-
-            table_name = model.storage_name(name)
-            schema_hash = model.to_json_schema_compatible_hash
-          end
-
-         ##
-         # Destroys the persevere schema from the model.
-         #
-         # @param [DataMapper::Model] model
-         #   The model that corresponds to the storage schema that needs to be destroyed.
-         #
-         # @api semipublic
-         def destroy_model_storage(model)
-           return true unless storage_exists?(model.storage_name(name))
-           schema_hash = model.to_json_schema_compatible_hash
-           return true unless delete_schema(schema_hash).nil?
-           false
-         end
-
-      end # module PersevereAdapter
-    end # module Migrations
-    
   module Adapters
     class PersevereAdapter < AbstractAdapter
       extend Chainable
       extend Deprecate
-      
+
       include Migrations::PersevereAdapter
-      
+
       ##
       # Used by DataMapper to put records into a data-store: "INSERT"
       # in SQL-speak.  It takes an array of the resources (model
@@ -315,7 +371,7 @@ module DataMapper
         end
 
         result = @persevere.retrieve(path)
-        
+
         if result.code == "200"
           return result.body
         else
@@ -325,7 +381,7 @@ module DataMapper
 
       def put_schema(schema_hash, project = nil)
         path = "/Class/"
-        
+
         if ! project.nil?
           if schema_hash.has_key?("id")
             if ! schema_hash['id'].index(project)
@@ -335,7 +391,7 @@ module DataMapper
             puts "You need an id key/value in the hash"
           end
         end
-     
+
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -343,7 +399,7 @@ module DataMapper
           return false
         end
       end
-      
+
       def update_schema(schema_hash, project = nil)
 
         id = schema_hash['id']
@@ -357,14 +413,14 @@ module DataMapper
         end
         # debugger
         result = @persevere.update(path, payload)
-    
+
         if result.code == '200'
           return result.body
         else
           return false
         end
       end
-      
+
       def delete_schema(schema_hash, project = nil)
         if ! project.nil?
           if schema_hash.has_key?("id")
@@ -377,7 +433,7 @@ module DataMapper
         end
         path = "/Class/#{schema_hash['id']}"
         result = @persevere.delete(path)
-        
+
         if result.code == "204"
           return true
         else
@@ -477,47 +533,65 @@ module DataMapper
       # @api semipublic
 
       def make_json_query(query)
-        query_terms = Array.new
-        headers     = Hash.new
 
-        conditions = query.conditions
-
-        conditions.each do |condition|
-          operator, property, bind_value = condition
-          # puts condition.inspect
-          # puts operator.inspect
-          # puts property.inspect
-          # puts bind_value.inspect
-          if !property.nil? && !bind_value.nil?
-            v = property.typecast(bind_value)
-            if v.is_a?(String)
-              value = "'#{bind_value}'"
-            else
-              value = "#{bind_value}"
-            end
-
-            query_terms << case operator
-               when :eql then "#{property.field()}=#{value}"
-               when :lt then  "#{property.field()}<#{value}"
-               when :gt then  "#{property.field()}>#{value}"
-               when :lte then "#{property.field()}<=#{value}"
-               when :gte then "#{property.field()}=>#{value}"
-               when :not then "#{property.field()}!=#{value}"
-               when :like then "#{property.field()}~'*#{value}*'"
-               else puts "Unknown condition: #{operator}"
-               end
+        def process_in(value, candidate_set)
+          result_string = Array.new
+          candidate_set.to_a.each do |candidate|
+            result_string << "#{value}=#{candidate}"
+          end
+          if result_string.length > 0
+            "(#{result_string.join("|")})"
+          else
+            "#{value}=''"
           end
         end
-
-        puts query_terms.inspect
-
-        if query_terms.length != 0
-          # json_query = "?#{query_terms.join("&")}"
-          json_query = "[?#{query_terms.join("][?")}]"
-        else
-          json_query = ""
+        
+        def process_condition(condition)  
+          case condition.slug
+            # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
+            # without regular expressions, the like operator is inordinately challenging hence we pass it back
+            # when :like then "RegExp(\"#{condition.value.gsub!('%', '*')}\").test(#{condition.subject.name})"
+            # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
+            when :regexp then []
+            when :like then []
+            when :and then "(#{condition.operands.map { |op| process_condition(op) }.join("&")})"
+            when :or then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
+            when :not then 
+              inside = process_condition(condition.operand) 
+              inside.empty? ? [] : "!(%s)" % inside
+            when :in then process_in(condition.subject.name, condition.value)
+            when :eql then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')
+            else condition.to_s.gsub(' ', '')
+          end
         end
-        # 
+        
+        json_query = ""
+        query_terms = Array.new
+        order_operations = Array.new
+        headers = Hash.new
+                
+        query.conditions.each do |condition| 
+#          puts "+++ SQL: #{condition.to_s}"
+          query_terms << process_condition(condition) 
+        end
+
+        if query_terms.flatten.length != 0
+          json_query += "[?#{query_terms.join("][?")}]"
+        end
+                
+        if query.order && query.order.any?
+          query.order.map do |direction|
+            order_operations << case direction.operator
+              when :asc then "[\/#{direction.target.field}]"
+              when :desc then "[\\#{direction.target.field}]"
+            end
+          end
+        end
+            
+        json_query += order_operations.join("")
+        
+#        puts "JSON QUERY: #{json_query}"
+                
         # if query.offset.to_i > 0 || !query.limit.nil?
         #   offset = query.offset || '0'
         #   limit = query.limit.nil? ? '' : query.limit.to_i + offset - 1
@@ -525,12 +599,10 @@ module DataMapper
         #   headers.merge!({'Range' => "items=#{offset}-#{limit}"})
         #   puts headers.inspect
         # end
-        puts json_query
+                
         return json_query, headers
       end
     end # class PersevereAdapter
     const_added(:PersevereAdapter)
   end # module Adapters
-  
-
 end # module DataMapper
