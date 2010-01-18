@@ -66,7 +66,7 @@ module DataMapper
         # debugger
         values = JSON.parse(value).compact
         result = values.inject(0.0){|sum,i| sum+=i }/values.length
-        puts "#{property.type}:    :#{property.inspect}"
+        # puts "#{property.type}:    :#{property.inspect}"
         property.type == Integer ? result.to_f : property.typecast(result)
       end
       
@@ -110,6 +110,7 @@ module DataMapper
       #
       # @api semipublic
       def create_model_storage(model)
+        # debugger if ["Knight", "Country", "Dragon"].include?(model.name)
         name       = self.name
         properties = model.properties_with_subclasses(name)
 
@@ -118,7 +119,7 @@ module DataMapper
 
         schema_hash = model.to_json_schema_compatible_hash
 
-        return true unless put_schema(schema_hash).nil?
+        return true unless put_schema(schema_hash) == false
         false
       end
 
@@ -151,7 +152,7 @@ module DataMapper
       def destroy_model_storage(model)
         return true unless storage_exists?(model.storage_name(name))
         schema_hash = model.to_json_schema_compatible_hash
-        return true unless delete_schema(schema_hash).nil?
+        return true unless delete_schema(schema_hash) == false
         false
       end
 
@@ -431,7 +432,6 @@ module DataMapper
             puts "You need an id key/value in the hash"
           end
         end
-
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -625,6 +625,7 @@ module DataMapper
         end
         
         query.fields.each do |field|
+          if field.respond_to?(:operator)
           field_ops << case field.operator
             when :count then 
               if field.target.is_a?(DataMapper::Property)
@@ -641,6 +642,7 @@ module DataMapper
             when :avg
               "[=#{field.target.name}]"
           end
+        end
         end
            
         json_query += field_ops.join("")
@@ -663,7 +665,7 @@ module DataMapper
           headers.merge!({"Range", "items=#{offset}-#{limit}"})
         end
         # puts "#{query.inspect}"
-        puts json_query
+        # puts json_query
         return json_query, headers
       end
     end # class PersevereAdapter
