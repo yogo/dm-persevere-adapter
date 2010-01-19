@@ -2,9 +2,7 @@ require 'pathname'
 require 'rubygems'
 require 'addressable/uri'
 require 'spec'
-# require '../../../../lib/datamapper/factory'
-require 'ruby-debug'
-
+ 
 require 'dm-core'
 
 def path_to(gem_name, version=nil)

@@ -58,6 +58,8 @@ module DataMapper
         values = JSON.parse("[#{value}]").flatten.compact
         if values.is_a?(Array)
           values.map! { |v| property.typecast(v) }
+          return values.sort[0].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.type == DateTime
+          return values.sort[0] + Time.now.gmt_offset if property.type == Time
           return values.sort[0]
         end
         property.typecast(value)
@@ -67,16 +69,16 @@ module DataMapper
         values = JSON.parse("[#{value}]").flatten.compact
         if values.is_a?(Array)
           values.map! { |v| property.typecast(v) }
+          return values.sort[-1].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.type == DateTime
+          return values.sort[-1] + Time.now.gmt_offset if property.type == Time
           return values.sort[-1]
         end
         property.typecast(value)
      end
       
       def avg(property, value)
-        # debugger
         values = JSON.parse(value).compact
         result = values.inject(0.0){|sum,i| sum+=i }/values.length
-        # puts "#{property.type}:    :#{property.inspect}"
         property.type == Integer ? result.to_f : property.typecast(result)
       end
       
@@ -120,7 +122,6 @@ module DataMapper
       #
       # @api semipublic
       def create_model_storage(model)
-        # debugger if ["Knight", "Country", "Dragon"].include?(model.name)
         name       = self.name
         properties = model.properties_with_subclasses(name)
 
@@ -247,7 +248,7 @@ module DataMapper
           tblname = resource.model.storage_name
 
           path = "/#{tblname}/"
-          payload = resource.attributes
+          payload = make_json_compatible_hash(resource)
           
           payload.delete(:id)
 
@@ -261,8 +262,11 @@ module DataMapper
             # Typecast attributes, DM expects them properly cast
             resource.model.properties.each do |prop|
               value = rsrc_hash[prop.field.to_s]
-              if !value.nil?
-                rsrc_hash[prop.field.to_s] = prop.typecast(value)
+              rsrc_hash[prop.field.to_s] = prop.typecast(value) unless value.nil?
+              # Shift date/time objects to the correct timezone because persevere is UTC
+              case prop 
+                when DateTime then rsrc_hash[prop.field.to_s] = value.new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24))
+                when Time then rsrc_hash[prop.field.to_s] = value.getlocal
               end
             end
 
@@ -309,7 +313,7 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.id}"
 
-          payload = resource.attributes.reject{ |key,value| value.nil? }
+          payload = make_json_compatible_hash(resource)
 
           result = @persevere.update(path, payload)
 
@@ -370,8 +374,11 @@ module DataMapper
             # Typecast attributes, DM expects them properly cast
             query.model.properties.each do |prop|
               value = rsrc_hash[prop.field.to_s]
-              if !value.nil?
-                rsrc_hash[prop.field.to_s] = prop.typecast(value)
+              rsrc_hash[prop.field.to_s] = prop.typecast(value) unless value.nil?
+              # Shift date/time objects to the correct timezone because persevere is UTC
+              case prop 
+                when DateTime then rsrc_hash[prop.field.to_s] = value.new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24))
+                when Time then rsrc_hash[prop.field.to_s] = value.getlocal
               end
             end
           end
@@ -477,7 +484,7 @@ module DataMapper
         else
           path =  "/Class/#{project}/#{id}"
         end
-        # debugger
+
         result = @persevere.update(path, payload)
 
         if result.code == '200'
@@ -583,11 +590,18 @@ module DataMapper
       #   The DataMapper query object passed in
       #
       # @api semipublic
-      def make_json(resource)
-        json_rsrc = nil
-
-        # Gather up all the attributes
-        json_rsrc = resource.attributes.to_json
+      def make_json_compatible_hash(resource)
+        json_rsrc = Hash.new                
+        resource.attributes(:property).each do |property, value|
+          next if value.nil? 
+          json_rsrc[property.field] = case value
+            when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
+            when Date then value.to_s
+            when Time then value.getutc.strftime("%H:%M:%S")
+            else value
+          end
+        end        
+        json_rsrc
       end
 
       ##
@@ -598,8 +612,6 @@ module DataMapper
       #
       # @api semipublic
       def make_json_query(query)
-        # debugger
-        # puts query.inspect
         def process_in(value, candidate_set)
           result_string = Array.new
           candidate_set.to_a.each do |candidate|
