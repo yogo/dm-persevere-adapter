@@ -19,13 +19,13 @@ module DataMapper
   end
   
   class ::DateTime
-    def to_s
+    def to_s(*opts)
       self.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
     end
   end
   
   class ::Time
-    def to_s
+    def to_s(*opts)
       self.getutc.strftime("%H:%M:%S")
     end
   end
