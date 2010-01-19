@@ -55,12 +55,22 @@ module DataMapper
       end
       
       def min(property, value)
+        values = JSON.parse("[#{value}]").flatten.compact
+        if values.is_a?(Array)
+          values.map! { |v| property.typecast(v) }
+          return values.sort[0]
+        end
         property.typecast(value)
       end
       
       def max(property, value)
+        values = JSON.parse("[#{value}]").flatten.compact
+        if values.is_a?(Array)
+          values.map! { |v| property.typecast(v) }
+          return values.sort[-1]
+        end
         property.typecast(value)
-      end
+     end
       
       def avg(property, value)
         # debugger
@@ -185,7 +195,7 @@ module DataMapper
           BigDecimal  => { :primitive => 'number'},
           Float       => { :primitive => 'number'},
           DateTime    => { :primitive => 'string', :format => 'date-time'},
-          Date        => { :primitive => 'string', :foramt => 'date'},
+          Date        => { :primitive => 'string', :format => 'date'},
           Time        => { :primitive => 'string', :format => 'time'},
           TrueClass   => { :primitive => 'boolean'},
           Types::Text => { :primitive => 'string'}
@@ -634,9 +644,17 @@ module DataMapper
                 ".length"
               end
             when :min
-              ".min(?#{field.target.name})"
+              if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
+                "[=#{field.target.name}]"
+              else
+                ".min(?#{field.target.name})"
+              end
             when :max
-              ".max(?#{field.target.name})"
+              if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
+                "[=#{field.target.name}]"
+              else
+                ".max(?#{field.target.name})"
+              end
             when :sum
               ".sum(?#{field.target.name})"
             when :avg
