@@ -13,6 +13,7 @@ module DataMapper
         properties_hash = {}
         usable_properties.each{|p| properties_hash[p.name] = p.to_json_schema_hash(repository_name) if p.name != :id }
         schema_hash['properties'] = properties_hash
+        schema_hash['prototype'] = {}
         return schema_hash
       end
   end
@@ -22,6 +23,7 @@ module DataMapper
       # debugger
       tm = repository(repo).adapter.type_map
       json_hash = { "type" => tm[type][:primitive] }
+      json_hash.merge!({ "format" => tm[type][:format]}) if tm[type].has_key?(:format)
       json_hash.merge!({ "optional" => true }) unless required? == true
       # MIN
       # MAX
