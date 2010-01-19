@@ -18,6 +18,18 @@ module DataMapper
       end
   end
   
+  class ::DateTime
+    def to_s
+      self.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
+    end
+  end
+  
+  class ::Time
+    def to_s
+      self.getutc.strftime("%H:%M:%S")
+    end
+  end
+
   class Property
     def to_json_schema_hash(repo)
       # debugger

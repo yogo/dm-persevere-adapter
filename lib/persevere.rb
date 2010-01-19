@@ -109,7 +109,7 @@ class Persevere
 
   def delete(path, headers = {})
     response = nil
-    puts "DELETING #{path}"
+#    puts "DELETING #{path}"
     while response.nil?
       begin
         response = @persevere.send_request('DELETE', path, nil, HEADERS.merge(headers))
