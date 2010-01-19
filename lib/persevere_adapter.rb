@@ -184,9 +184,9 @@ module DataMapper
           Class       => { :primitive => 'string'},
           BigDecimal  => { :primitive => 'number'},
           Float       => { :primitive => 'number'},
-          DateTime    => { :primitive => 'string'},
-          Date        => { :primitive => 'string'},
-          Time        => { :primitive => 'string'},
+          DateTime    => { :primitive => 'string', :format => 'date-time'},
+          Date        => { :primitive => 'string', :foramt => 'date'},
+          Time        => { :primitive => 'string', :format => 'time'},
           TrueClass   => { :primitive => 'boolean'},
           Types::Text => { :primitive => 'string'}
         }.freeze
