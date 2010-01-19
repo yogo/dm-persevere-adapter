@@ -179,4 +179,24 @@ describe DataMapper::Adapters::PersevereAdapter do
       Bozon.auto_migrate_down!
     end
   end
+  
+  describe "is reflective" do
+    it "should be able to fetch json model descriptions" # do
+    #       @return_hash = @test_schema_hash.clone
+    #       @return_hash['prototype'] = {}
+    #       @adapter.fetch_models.should_not include(@return_hash)
+    #       @adapter.put_schema(@test_schema_hash)
+    #       models = @adapter.fetch_models
+    #       models.should include(@return_hash)
+    #       @adapter.delete_schema(@test_schema_hash)
+    #     end
+    
+    it "should reflect existing schemas into DM models with reflect!" # do
+    #       @adapter.put_schema(@test_schema_hash)
+    #       @adapter.reflect!
+    #       Vanilla.should_not be_nil
+    #     end
+  end
+  
+  
 end
