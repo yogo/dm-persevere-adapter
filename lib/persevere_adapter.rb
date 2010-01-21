@@ -170,22 +170,6 @@ module DataMapper
     end # module PersevereAdapter
   end # module Migrations
 
-  class Reflection
-    module PersevereAdapter
-      @@reserved_classes = ['User','Transaction','Capability','File','Class']
-
-      # def reflect!
-      #   fetch_models.map{|m| DataMapper::Factory.build(m) }
-      # end
-
-      def fetch_models
-        JSON.parse(self.get_schema).select{|schema| !@@reserved_classes.include?(schema['id'])}
-      end
-
-    end # module PersevereAdapter
-  end # class Reflection
-
-
   module Adapters
     class PersevereAdapter < AbstractAdapter
       extend Chainable
