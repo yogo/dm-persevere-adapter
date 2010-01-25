@@ -434,7 +434,7 @@ module DataMapper
           schemas.each do |schema|
             schema['properties']['id'] = { 'type' => Types::Serial}
           end
-          return schemas.length > 1 ? schemas : schemas[0]
+          return schemas.length > 1 ? schemas : (schemas[0] || [])
         else
           return false
         end
