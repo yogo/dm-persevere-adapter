@@ -54,11 +54,11 @@ describe Persevere do
        JSON.parse(result.body).should == @mockObj
      end
      
-     it 'should not allow posting with a bad object' do
-       result = @p.create('/Class/', @corruptObj)
-       result.code.should == "500"
-       result.body.should == "\"Can not modify queries\""
-     end
+     # it 'should not allow posting with a bad object' do
+     #   result = @p.create('/Class/', @corruptObj)
+     #   result.code.should == "500"
+     #   result.body.should == "\"Can not modify queries\""
+     # end
      
      it 'should not allow posting to an existing object/id/path' do
        result = @p.create('/Class/', @blobObj)

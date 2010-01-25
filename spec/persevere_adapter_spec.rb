@@ -26,6 +26,16 @@ describe DataMapper::Adapters::PersevereAdapter do
       property :title, String
     end
     
+    class ::Dataino
+      include DataMapper::Resource
+    
+      # Persevere only does id's as strings.  
+      property :id, String, :serial => true
+      property :author, String
+      property :created_at, DateTime
+      property :title, String
+    end
+    
     @test_schema_hash = {
       'id' => 'Vanilla',
       'properties' => {
@@ -90,18 +100,23 @@ describe DataMapper::Adapters::PersevereAdapter do
        end 
      end
    
-     describe '#get_schema' do
+     describe '#get_schema' do       
        it 'should return all of the schemas (in json) if no name is provided' do
-         # debugger
-         result = @adapter.get_schema()
+         Bozon.auto_migrate!
+         Dataino.auto_migrate!
+         result = @adapter.get_schema
          result.should_not == false
          result.class.should == Array
+         Bozon.auto_migrate_down!
+         Dataino.auto_migrate_down!
        end 
    
        it 'should return the json schema of the class specified' do
-         result = @adapter.get_schema("Object")
+         Bozon.auto_migrate!
+         result = @adapter.get_schema("bozon")
          result.should_not == false
-         result["id"].should == "Object"
+         result[0]["id"].should == "bozon"
+         Bozon.auto_migrate_down!
        end
      end
    

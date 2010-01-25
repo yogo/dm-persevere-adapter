@@ -175,7 +175,7 @@ module DataMapper
       extend Chainable
       extend Deprecate
       
-      RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class']
+      RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class', 'Object']
 
       include Migrations::PersevereAdapter
 
@@ -419,6 +419,7 @@ module DataMapper
       ##
       def get_schema(name = nil, project = nil)
         path = nil
+        single = false
         if name.nil? & project.nil?
           path = "/Class/"
         elsif project.nil?
@@ -434,7 +435,7 @@ module DataMapper
           schemas.each do |schema|
             schema['properties']['id'] = { 'type' => Types::Serial}
           end
-          return schemas.length > 1 ? schemas : (schemas[0] || [])
+          return name.nil? ? schemas : schemas[0..0]
         else
           return false
         end
