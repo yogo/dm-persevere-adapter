@@ -8,6 +8,8 @@ require agg_dir / 'spec' / 'public' / 'shared' / 'aggregate_shared_spec'
 
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
+require 'ruby-debug'
+
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
     # This needs to point to a valid persevere server
@@ -65,7 +67,7 @@ describe DataMapper::Adapters::PersevereAdapter do
        Bozon.auto_migrate!
        Bozon.auto_migrate_down!
      end
-   
+        
      it "should destroy Create then Remove the Bozon Storage" do
        @adapter.get_schema(Bozon.storage_name).should == false
        Bozon.auto_migrate_up!
@@ -90,27 +92,17 @@ describe DataMapper::Adapters::PersevereAdapter do
    
      describe '#get_schema' do
        it 'should return all of the schemas (in json) if no name is provided' do
+         # debugger
          result = @adapter.get_schema()
          result.should_not == false
-         JSON.parse(result).class.should == Array
+         result.class.should == Array
        end 
    
        it 'should return the json schema of the class specified' do
          result = @adapter.get_schema("Object")
          result.should_not == false
-         JSON.parse(result)["id"].should == "Object"
+         result["id"].should == "Object"
        end
-   
-       # I don't think we need these tests.
-       # it 'should return all of the schemas (in json) for a project if no name is provided' do
-       #   result = @adapter.get_schema(nil, "Class")
-       #   debugger
-       #   result
-       # end 
-       #   
-       # it 'should return all of the schemas (in json) if no name is provided' do
-       #   @adapter.get_schema("Object", "Class")
-       # end 
      end
    
      describe '#update_schema' do
@@ -169,28 +161,14 @@ describe DataMapper::Adapters::PersevereAdapter do
       result.length.should == 2
     end
     
+    it "should return data from an offset" do
+      result = Bozon.all(:limit => 5, :offset => 10)
+      result.length.should == 5
+      result.map { |item| item.id }.should == ["11", "12", "13", "14", "15"]
+    end
+    
     after(:all) do
       Bozon.auto_migrate_down!
     end
   end
-  
-  describe "is reflective" do
-    it "should be able to fetch json model descriptions" # do
-    #       @return_hash = @test_schema_hash.clone
-    #       @return_hash['prototype'] = {}
-    #       @adapter.fetch_models.should_not include(@return_hash)
-    #       @adapter.put_schema(@test_schema_hash)
-    #       models = @adapter.fetch_models
-    #       models.should include(@return_hash)
-    #       @adapter.delete_schema(@test_schema_hash)
-    #     end
-    
-    it "should reflect existing schemas into DM models with reflect!" # do
-    #       @adapter.put_schema(@test_schema_hash)
-    #       @adapter.reflect!
-    #       Vanilla.should_not be_nil
-    #     end
-  end
-  
-  
 end

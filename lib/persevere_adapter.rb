@@ -174,6 +174,8 @@ module DataMapper
     class PersevereAdapter < AbstractAdapter
       extend Chainable
       extend Deprecate
+      
+      RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class']
 
       include Migrations::PersevereAdapter
 
@@ -188,7 +190,7 @@ module DataMapper
         scale     = Property::DEFAULT_SCALE_BIGDECIMAL
 
         @type_map ||= {
-          Types::Serial => { :primitive => 'string' },
+          Types::Serial => { :primitive => 'integer' },
           Types::Boolean => { :primitive => 'boolean' },
           Integer     => { :primitive => 'integer'},
           String      => { :primitive => 'string'},
@@ -371,8 +373,7 @@ module DataMapper
         end
 
         # We could almost elimate this if regexp was working in persevere.
-        query.filter_records(resources)
-        # resources
+        query.match_records(resources)
       end
 
       alias :read :read_many
@@ -427,11 +428,13 @@ module DataMapper
         else
           path = "/Class/#{project}/#{name}"
         end
-
         result = @persevere.retrieve(path)
-
         if result.code == "200"
-          return result.body
+          schemas = [JSON.parse(result.body)].flatten.select{ |schema| not RESERVED_CLASSNAMES.include?(schema['id']) }
+          schemas.each do |schema|
+            schema['properties']['id'] = { 'type' => Types::Serial}
+          end
+          return schemas.length > 1 ? schemas : schemas[0]
         else
           return false
         end
@@ -439,7 +442,6 @@ module DataMapper
 
       def put_schema(schema_hash, project = nil)
         path = "/Class/"
-
         if ! project.nil?
           if schema_hash.has_key?("id")
             if ! schema_hash['id'].index(project)
@@ -449,6 +451,7 @@ module DataMapper
             puts "You need an id key/value in the hash"
           end
         end
+        schema_hash['properties'].delete('id') if schema_hash['properties'].has_key?('id')
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -458,7 +461,6 @@ module DataMapper
       end
 
       def update_schema(schema_hash, project = nil)
-
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
 
@@ -694,8 +696,9 @@ module DataMapper
         if offset != 0 || !limit.nil?
           headers.merge!({"Range", "items=#{offset}-#{limit}"})
         end
-        # puts "#{query.inspect}"
-        # puts json_query
+#        puts "#{query.inspect}"
+        # puts json_query, headers
+        
         return json_query, headers
       end
     end # class PersevereAdapter

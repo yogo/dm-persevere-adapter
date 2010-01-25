@@ -184,6 +184,15 @@ describe Persevere do
       json[0]['id'].should == '21'
       json[-1]['id'].should == '100'      
     end
+
+    it "should return objects with id's 11 - 15" do
+      result = @p.retrieve('/Yogo/', {'Range' => 'items=10-14'})
+      result.code.should == '206'
+      json = JSON.parse(result.body)
+      json.length.should == 5
+      json[0]['id'].should == '11'
+      json[-1]['id'].should == '15'      
+    end
     
     after(:all) do
       @p.delete('/Class/Yogo')

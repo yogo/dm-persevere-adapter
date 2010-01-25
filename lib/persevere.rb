@@ -94,7 +94,6 @@ class Persevere
 
   def update(path, resource, headers = {})
     json_blob = resource.to_json
-#    puts "JSON to PERSEVERE: #{json_blob}"
     response = nil
     while response.nil?
       begin
@@ -109,7 +108,6 @@ class Persevere
 
   def delete(path, headers = {})
     response = nil
-#    puts "DELETING #{path}"
     while response.nil?
       begin
         response = @persevere.send_request('DELETE', path, nil, HEADERS.merge(headers))
