@@ -149,8 +149,21 @@ module DataMapper
           return properties
         end
 
-        table_name = model.storage_name(name)
-        schema_hash = model.to_json_schema_compatible_hash
+        new_schema_hash = model.to_json_schema_compatible_hash
+        current_schema_hash = get_schema(new_schema_hash['id'])[0]
+        # Diff of what is there and what will be added.
+
+        new_properties = properties.map do |property|
+          prop_name = property.name.to_s
+          prop_type = property.type
+          next if prop_name == 'id' || 
+                  (current_schema_hash['properties'].has_key?(prop_name) && 
+                  new_schema_hash['properties'][prop_name.to_sym]['type'] == current_schema_hash['properties'][prop_name]['type'] )
+          property
+        end.compact
+        
+        return new_properties unless update_schema(new_schema_hash) == false
+        return nil
       end
 
       ##
@@ -464,7 +477,7 @@ module DataMapper
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
-
+        payload['properties'].delete('id') if payload['properties'].has_key?('id')
 
         if project.nil?
           path = "/Class/#{id}"

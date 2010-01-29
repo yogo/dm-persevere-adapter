@@ -36,6 +36,13 @@ describe DataMapper::Adapters::PersevereAdapter do
       property :title, String
     end
     
+    class ::Nugaton
+      include DataMapper::Resource
+      
+      property :id, Serial
+      property :name, String
+    end
+    
     @test_schema_hash = {
       'id' => 'Vanilla',
       'properties' => {
@@ -184,6 +191,27 @@ describe DataMapper::Adapters::PersevereAdapter do
     
     after(:all) do
       Bozon.auto_migrate_down!
+    end
+  end
+  
+  describe 'auto updating models' do
+    before :each do
+      Nugaton.auto_migrate!
+    end
+    
+    it "should auto upgrade correctly" do
+      before_schema = @adapter.get_schema('nugaton')[0]
+      before_schema['properties'].should have_key('name')
+      before_schema['properties'].should_not have_key('big_value')
+      Nugaton.send(:property, :big_value, Integer)
+      Nugaton.auto_upgrade!
+      before_schema = @adapter.get_schema('nugaton')[0]
+      before_schema['properties'].should have_key('name')
+      before_schema['properties'].should have_key('big_value')
+    end
+    
+    after(:all) do
+      Nugaton.auto_migrate_down!
     end
   end
 end
