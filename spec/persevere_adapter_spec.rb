@@ -76,6 +76,10 @@ describe DataMapper::Adapters::PersevereAdapter do
       }
     }
   end
+
+  after :all do 
+    DataMapper::Model.descendants.each{|cur_model| cur_model.auto_migrate_down! }
+  end
   
    it_should_behave_like 'An Adapter'
    
@@ -170,6 +174,10 @@ describe DataMapper::Adapters::PersevereAdapter do
       @countries = Country.all
     end
     it_should_behave_like 'An Aggregatable Class'
+    
+    it "should count with like conditions" do
+      Country.count(:name.like => '%n%').should == 4
+    end
   end
 
   describe 'limiting and offsets' do

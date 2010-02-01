@@ -14,17 +14,17 @@ begin
     gemspec.add_dependency(%q<dm-core>, [">= 0.10.1"])
     gemspec.add_dependency(%q<extlib>)
   end
-  Jeweler::Tasks.new do |gemspec|
-    gemspec.name = %q{persevere}
-    gemspec.summary = %q{A ruby wrapper for persevere}
-    gemspec.description = %q{A ruby wrapper for persevere}
-    gemspec.email = ["irjudson [a] gmail [d] com"]
-    gemspec.homepage = %q{http://github.com/yogo/persevere}
-    gemspec.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team" ]
-    gemspec.rdoc_options = ["--main", "persevere/README.txt"]
-    gemspec.files = ["LICENSE.txt", "persevere/History.txt", "persevere/README.txt", "Rakefile", "lib/persevere.rb"]
-    gemspec.test_files = ["spec/persevere_spec.rb", "spec/spec.opts", "spec/spec_helper.rb"]
-  end
+  # Jeweler::Tasks.new do |gemspec|
+  #    gemspec.name = %q{persevere}
+  #    gemspec.summary = %q{A ruby wrapper for persevere}
+  #    gemspec.description = %q{A ruby wrapper for persevere}
+  #    gemspec.email = ["irjudson [a] gmail [d] com"]
+  #    gemspec.homepage = %q{http://github.com/yogo/persevere}
+  #    gemspec.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team" ]
+  #    gemspec.rdoc_options = ["--main", "persevere/README.txt"]
+  #    gemspec.files = ["LICENSE.txt", "persevere/History.txt", "persevere/README.txt", "Rakefile", "lib/persevere.rb"]
+  #    gemspec.test_files = ["spec/persevere_spec.rb", "spec/spec.opts", "spec/spec_helper.rb"]
+  #  end
   Jeweler::GemcutterTasks.new
 rescue LoadError
   puts "Jeweler not available. Install it with: gem install jeweler"

@@ -631,7 +631,7 @@ module DataMapper
             # when :like then "RegExp(\"#{condition.value.gsub!('%', '*')}\").test(#{condition.subject.name})"
             # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
             when DataMapper::Query::Conditions::RegexpComparison then []
-            when DataMapper::Query::Conditions::LikeComparison then []
+            when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.name.to_s}='#{condition.loaded_value.gsub('%', '*')}'"
             when DataMapper::Query::Conditions::AndOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("&")})"
             when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
             when DataMapper::Query::Conditions::NotOperation then 
@@ -665,7 +665,7 @@ module DataMapper
         query.fields.each do |field|
           if field.respond_to?(:operator)
           field_ops << case field.operator
-            when :count then 
+            when :count then
               if field.target.is_a?(DataMapper::Property)
                 "[?#{field.target.name}!=undefined].length"
               else # field.target is all.
@@ -712,7 +712,6 @@ module DataMapper
         end
 #        puts "#{query.inspect}"
         # puts json_query, headers
-        
         return json_query, headers
       end
     end # class PersevereAdapter
