@@ -8,8 +8,6 @@ require agg_dir / 'spec' / 'public' / 'shared' / 'aggregate_shared_spec'
 
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
-require 'ruby-debug'
-
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
     # This needs to point to a valid persevere server

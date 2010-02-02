@@ -628,18 +628,20 @@ module DataMapper
           case condition
             # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
             # without regular expressions, the like operator is inordinately challenging hence we pass it back
-            # when :like then "RegExp(\"#{condition.value.gsub!('%', '*')}\").test(#{condition.subject.name})"
             # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
             when DataMapper::Query::Conditions::RegexpComparison then []
             when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.name.to_s}='#{condition.loaded_value.gsub('%', '*')}'"
-            when DataMapper::Query::Conditions::AndOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("&")})"
+            when DataMapper::Query::Conditions::AndOperation then 
+              inside = condition.operands.map { |op| process_condition(op) }.flatten
+              inside.empty? ? []  : "(#{inside.join("&")})"
             when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
             when DataMapper::Query::Conditions::NotOperation then 
               inside = process_condition(condition.operand) 
               inside.empty? ? [] : "!(%s)" % inside
             when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
-            when DataMapper::Query::Conditions::EqualToComparison then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')
-            when Array
+            when DataMapper::Query::Conditions::EqualToComparison then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')              
+            when DataMapper::Query::Conditions::NullOperation then []
+            when Array then
                old_statement, bind_values = condition
                statement = old_statement.dup
                bind_values.each{ |bind_value| statement.sub!('?', bind_value.to_s) }
@@ -654,9 +656,7 @@ module DataMapper
         field_ops = Array.new
         headers = Hash.new
 
-        query.conditions.each do |condition|
-          query_terms << process_condition(condition) 
-        end
+        query_terms << process_condition(query.conditions) 
 
         if query_terms.flatten.length != 0
           json_query += "[?#{query_terms.join("][?")}]"
