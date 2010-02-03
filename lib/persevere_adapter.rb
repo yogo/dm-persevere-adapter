@@ -149,8 +149,21 @@ module DataMapper
           return properties
         end
 
-        table_name = model.storage_name(name)
-        schema_hash = model.to_json_schema_compatible_hash
+        new_schema_hash = model.to_json_schema_compatible_hash
+        current_schema_hash = get_schema(new_schema_hash['id'])[0]
+        # Diff of what is there and what will be added.
+
+        new_properties = properties.map do |property|
+          prop_name = property.name.to_s
+          prop_type = property.type
+          next if prop_name == 'id' || 
+                  (current_schema_hash['properties'].has_key?(prop_name) && 
+                  new_schema_hash['properties'][prop_name.to_sym]['type'] == current_schema_hash['properties'][prop_name]['type'] )
+          property
+        end.compact
+        
+        return new_properties unless update_schema(new_schema_hash) == false
+        return nil
       end
 
       ##
@@ -464,7 +477,7 @@ module DataMapper
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
-
+        payload['properties'].delete('id') if payload['properties'].has_key?('id')
 
         if project.nil?
           path = "/Class/#{id}"
@@ -615,18 +628,20 @@ module DataMapper
           case condition
             # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
             # without regular expressions, the like operator is inordinately challenging hence we pass it back
-            # when :like then "RegExp(\"#{condition.value.gsub!('%', '*')}\").test(#{condition.subject.name})"
             # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
             when DataMapper::Query::Conditions::RegexpComparison then []
-            when DataMapper::Query::Conditions::LikeComparison then []
-            when DataMapper::Query::Conditions::AndOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("&")})"
+            when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.name.to_s}='#{condition.loaded_value.gsub('%', '*')}'"
+            when DataMapper::Query::Conditions::AndOperation then 
+              inside = condition.operands.map { |op| process_condition(op) }.flatten
+              inside.empty? ? []  : "(#{inside.join("&")})"
             when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
             when DataMapper::Query::Conditions::NotOperation then 
               inside = process_condition(condition.operand) 
               inside.empty? ? [] : "!(%s)" % inside
             when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
-            when DataMapper::Query::Conditions::EqualToComparison then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')
-            when Array
+            when DataMapper::Query::Conditions::EqualToComparison then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')              
+            when DataMapper::Query::Conditions::NullOperation then []
+            when Array then
                old_statement, bind_values = condition
                statement = old_statement.dup
                bind_values.each{ |bind_value| statement.sub!('?', bind_value.to_s) }
@@ -641,9 +656,7 @@ module DataMapper
         field_ops = Array.new
         headers = Hash.new
 
-        query.conditions.each do |condition|
-          query_terms << process_condition(condition) 
-        end
+        query_terms << process_condition(query.conditions) 
 
         if query_terms.flatten.length != 0
           json_query += "[?#{query_terms.join("][?")}]"
@@ -652,7 +665,7 @@ module DataMapper
         query.fields.each do |field|
           if field.respond_to?(:operator)
           field_ops << case field.operator
-            when :count then 
+            when :count then
               if field.target.is_a?(DataMapper::Property)
                 "[?#{field.target.name}!=undefined].length"
               else # field.target is all.
@@ -699,7 +712,6 @@ module DataMapper
         end
 #        puts "#{query.inspect}"
         # puts json_query, headers
-        
         return json_query, headers
       end
     end # class PersevereAdapter
