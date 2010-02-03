@@ -59,7 +59,6 @@ module DataMapper
         if values.is_a?(Array)
           values.map! { |v| property.typecast(v) }
           return values.sort[0].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.type == DateTime
-          return values.sort[0] + Time.now.gmt_offset if property.type == Time
           return values.sort[0]
         end
         property.typecast(value)
@@ -70,7 +69,6 @@ module DataMapper
         if values.is_a?(Array)
           values.map! { |v| property.typecast(v) }
           return values.sort[-1].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.type == DateTime
-          return values.sort[-1] + Time.now.gmt_offset if property.type == Time
           return values.sort[-1]
         end
         property.typecast(value)
@@ -238,15 +236,7 @@ module DataMapper
         created = 0
         resources.each do |resource|
           serial = resource.model.serial(self.name)
-
-          #
-          # This isn't the best solution but for an adapter, it'd be nice
-          # to support objects being in *tables* instead of in one big icky
-          # sort of table.
-          #
-          tblname = resource.model.storage_name
-
-          path = "/#{tblname}/"
+          path = "/#{resource.model.storage_name}/"
           payload = make_json_compatible_hash(resource)
           
           payload.delete(:id)
@@ -597,7 +587,10 @@ module DataMapper
           json_rsrc[property.field] = case value
             when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
             when Date then value.to_s
-            when Time then value.getutc.strftime("%H:%M:%S")
+            when Time then value.strftime("%H:%M:%S")
+            when Float then value.to_f
+            when BigDecimal then value.to_f
+            when Integer then value.to_i
             else value
           end
         end        
