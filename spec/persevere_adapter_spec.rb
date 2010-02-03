@@ -18,24 +18,24 @@ describe DataMapper::Adapters::PersevereAdapter do
 
     class ::Bozon
       include DataMapper::Resource
-    
+
       # Persevere only does id's as strings.  
       property :id, String, :serial => true
       property :author, String
       property :created_at, DateTime
       property :title, String
     end
-    
+
     class ::Dataino
       include DataMapper::Resource
-    
+
       # Persevere only does id's as strings.  
       property :id, String, :serial => true
       property :author, String
       property :created_at, DateTime
       property :title, String
     end
-    
+
     @test_schema_hash = {
       'id' => 'Vanilla',
       'properties' => {
@@ -44,7 +44,7 @@ describe DataMapper::Adapters::PersevereAdapter do
         'data' => { 'type' => 'string'}
       }
     }
-    
+
     @test_schema_hash_alt = {
       'id' => 'test1/Vanilla',
       'properties' => {
@@ -60,7 +60,7 @@ describe DataMapper::Adapters::PersevereAdapter do
         'newdata' => { 'type' => 'any'}
       }
     }
-    
+
     @test_schema_hash_alt_mod = {
       'id' => 'test1/Vanilla',
       'properties' => {
@@ -69,92 +69,92 @@ describe DataMapper::Adapters::PersevereAdapter do
       }
     }
   end
-  
-   it_should_behave_like 'An Adapter'
-   
-   describe 'migrations' do
-     it 'should create the Bozon storage' do
-       Bozon.auto_migrate!
-       Bozon.auto_migrate_down!
-     end
-        
-     it "should destroy Create then Remove the Bozon Storage" do
-       @adapter.get_schema(Bozon.storage_name).should == false
-       Bozon.auto_migrate_up!
-       @adapter.get_schema(Bozon.storage_name).should_not == false
-       Bozon.auto_migrate_down!
-       @adapter.get_schema(Bozon.storage_name).should == false
-     end
-   
-     describe '#put_schema' do
-       it 'should create the json schema for the hash' do
-         @adapter.put_schema(@test_schema_hash).should_not == false
-       end 
-   
-       it 'should create the json schema for the hash under the specified project' do
-         @adapter.put_schema(@test_schema_hash, "test").should_not == false
-       end
-   
-       it 'should create the json schema for the hash under the specified project' do
-         @adapter.put_schema(@test_schema_hash_alt).should_not == false
-       end 
-     end
-   
-     describe '#get_schema' do       
-       it 'should return all of the schemas (in json) if no name is provided' do
-         Bozon.auto_migrate!
-         Dataino.auto_migrate!
-         result = @adapter.get_schema
-         result.should_not == false
-         result.class.should == Array
-         Bozon.auto_migrate_down!
-         Dataino.auto_migrate_down!
-       end 
-   
-       it 'should return the json schema of the class specified' do
-         Bozon.auto_migrate!
-         result = @adapter.get_schema("bozon")
-         result.should_not == false
-         result[0]["id"].should == "bozon"
-         Bozon.auto_migrate_down!
-       end
-     end
-   
-     describe '#update_schema' do
-       it 'should update a previously existing schema' do
-         result = @adapter.update_schema(@test_schema_hash_mod)
-         result.should_not == false
-   
-         @test_schema_hash_mod['id'].should match(JSON.parse(result)['id'])
-       end
-   
-       it 'should update a previously created schema under the specified project' do
-         result = @adapter.update_schema(@test_schema_hash_mod, "test")
-         result.should_not == false
-         @test_schema_hash_mod['id'].should match(JSON.parse(result)['id'])
-       end
-   
-       it 'should update a previously created schema under the specified project' do
-         result = @adapter.update_schema(@test_schema_hash_alt_mod)
-         result.should_not == false
-         @test_schema_hash_alt_mod['id'].should match(JSON.parse(result)['id'])
-       end
-     end
-   
-     describe '#delete_schema' do
-       it 'should delete the specified schema' do
-         @adapter.delete_schema(@test_schema_hash).should == true
-       end
-   
-       it 'should delete the specified schema in the specified project' do
-         @adapter.delete_schema(@test_schema_hash, "test").should == true
-       end
-   
-       it 'should delete the specified schema in the specified project' do
-         @adapter.delete_schema(@test_schema_hash_alt).should == true
-       end
-     end
-   end
+
+  it_should_behave_like 'An Adapter'
+
+  describe 'migrations' do
+    it 'should create the Bozon storage' do
+      Bozon.auto_migrate!
+      Bozon.auto_migrate_down!
+    end
+
+    it "should destroy Create then Remove the Bozon Storage" do
+      @adapter.get_schema(Bozon.storage_name).should == false
+      Bozon.auto_migrate_up!
+      @adapter.get_schema(Bozon.storage_name).should_not == false
+      Bozon.auto_migrate_down!
+      @adapter.get_schema(Bozon.storage_name).should == false
+    end
+
+    describe '#put_schema' do
+      it 'should create the json schema for the hash' do
+        @adapter.put_schema(@test_schema_hash).should_not == false
+      end 
+
+      it 'should create the json schema for the hash under the specified project' do
+        @adapter.put_schema(@test_schema_hash, "test").should_not == false
+      end
+
+      it 'should create the json schema for the hash under the specified project' do
+        @adapter.put_schema(@test_schema_hash_alt).should_not == false
+      end 
+    end
+
+    describe '#get_schema' do       
+      it 'should return all of the schemas (in json) if no name is provided' do
+        Bozon.auto_migrate!
+        Dataino.auto_migrate!
+        result = @adapter.get_schema
+        result.should_not == false
+        result.class.should == Array
+        Bozon.auto_migrate_down!
+        Dataino.auto_migrate_down!
+      end 
+
+      it 'should return the json schema of the class specified' do
+        Bozon.auto_migrate!
+        result = @adapter.get_schema("bozon")
+        result.should_not == false
+        result[0]["id"].should == "bozon"
+        Bozon.auto_migrate_down!
+      end
+    end
+
+    describe '#update_schema' do
+      it 'should update a previously existing schema' do
+        result = @adapter.update_schema(@test_schema_hash_mod)
+        result.should_not == false
+
+        @test_schema_hash_mod['id'].should match(JSON.parse(result)['id'])
+      end
+
+      it 'should update a previously created schema under the specified project' do
+        result = @adapter.update_schema(@test_schema_hash_mod, "test")
+        result.should_not == false
+        @test_schema_hash_mod['id'].should match(JSON.parse(result)['id'])
+      end
+
+      it 'should update a previously created schema under the specified project' do
+        result = @adapter.update_schema(@test_schema_hash_alt_mod)
+        result.should_not == false
+        @test_schema_hash_alt_mod['id'].should match(JSON.parse(result)['id'])
+      end
+    end
+
+    describe '#delete_schema' do
+      it 'should delete the specified schema' do
+        @adapter.delete_schema(@test_schema_hash).should == true
+      end
+
+      it 'should delete the specified schema in the specified project' do
+        @adapter.delete_schema(@test_schema_hash, "test").should == true
+      end
+
+      it 'should delete the specified schema in the specified project' do
+        @adapter.delete_schema(@test_schema_hash_alt).should == true
+      end
+    end
+  end
 
   describe 'aggregates' do
     it_should_behave_like 'It Has Setup Resources'
@@ -170,18 +170,18 @@ describe DataMapper::Adapters::PersevereAdapter do
       Bozon.auto_migrate!
       (0..99).each{|i| Bozon.create!(:author => i, :title => i)}
     end
-    
+
     it "should limit" do
       result = Bozon.all(:limit => 2)
       result.length.should == 2
     end
-    
+
     it "should return data from an offset" do
       result = Bozon.all(:limit => 5, :offset => 10)
       result.length.should == 5
       result.map { |item| item.id }.should == ["11", "12", "13", "14", "15"]
     end
-    
+
     after(:all) do
       Bozon.auto_migrate_down!
     end
