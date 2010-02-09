@@ -593,7 +593,7 @@ module DataMapper
             when Float then value.to_f
             when BigDecimal then value.to_f
             when Integer then value.to_i
-            else value
+            else resource[property.name]
           end
         end        
         json_rsrc
