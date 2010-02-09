@@ -22,7 +22,7 @@ module DataMapper
     def to_json_schema_hash(repo)
       tm = repository(repo).adapter.type_map
       json_hash = { "type" => tm[type][:primitive] }
-      json_hash.merge!({ "format" => tm[type][:format]}) if tm[type].has_key?(:format)
+      json_hash.merge!( tm[type].reject{ |key,value| key == :primitive } )
       json_hash.merge!({ "optional" => true }) unless required? == true
       # MIN
       # MAX
