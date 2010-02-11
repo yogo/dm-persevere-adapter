@@ -196,26 +196,28 @@ module DataMapper
       # @return [Hash] default types for data objects adapters.
       #
       # @api private
-      def type_map
-        length    = Property::DEFAULT_LENGTH
-        precision = Property::DEFAULT_PRECISION
-        scale     = Property::DEFAULT_SCALE_BIGDECIMAL
+      chainable do
+        def type_map
+          length    = Property::DEFAULT_LENGTH
+          precision = Property::DEFAULT_PRECISION
+          scale     = Property::DEFAULT_SCALE_BIGDECIMAL
 
-        @type_map ||= {
-          Types::Serial => { :primitive => 'integer' },
-          Types::Boolean => { :primitive => 'boolean' },
-          Integer     => { :primitive => 'integer'},
-          String      => { :primitive => 'string'},
-          Class       => { :primitive => 'string'},
-          BigDecimal  => { :primitive => 'number'},
-          Float       => { :primitive => 'number'},
-          DateTime    => { :primitive => 'string', :format => 'date-time'},
-          Date        => { :primitive => 'string', :format => 'date'},
-          Time        => { :primitive => 'string', :format => 'time'},
-          TrueClass   => { :primitive => 'boolean'},
-          Types::Text => { :primitive => 'string'}, 
-          DataMapper::Types::URI   => { :primitive => 'string', :format => 'uri'}
-        }.freeze
+          @type_map ||= {
+            Types::Serial => { :primitive => 'integer' },
+            Types::Boolean => { :primitive => 'boolean' },
+            Integer     => { :primitive => 'integer'},
+            String      => { :primitive => 'string'},
+            Class       => { :primitive => 'string'},
+            BigDecimal  => { :primitive => 'number'},
+            Float       => { :primitive => 'number'},
+            DateTime    => { :primitive => 'string', :format => 'date-time'},
+            Date        => { :primitive => 'string', :format => 'date'},
+            Time        => { :primitive => 'string', :format => 'time'},
+            TrueClass   => { :primitive => 'boolean'},
+            Types::Text => { :primitive => 'string'}, 
+            DataMapper::Types::URI   => { :primitive => 'string', :format => 'uri'}
+          }.freeze
+        end
       end
       
       ##
