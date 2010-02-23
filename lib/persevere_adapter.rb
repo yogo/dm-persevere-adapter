@@ -214,7 +214,8 @@ module DataMapper
             Date        => { :primitive => 'string', :format => 'date'},
             Time        => { :primitive => 'string', :format => 'time'},
             TrueClass   => { :primitive => 'boolean'},
-            Types::Text => { :primitive => 'string'}, 
+            Types::Text => { :primitive => 'string'},
+            DataMapper::Types::Object => { :primitive => 'string'},
             DataMapper::Types::URI   => { :primitive => 'string', :format => 'uri'}
           }.freeze
         end
