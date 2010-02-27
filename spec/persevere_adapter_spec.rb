@@ -220,4 +220,27 @@ describe DataMapper::Adapters::PersevereAdapter do
       Nugaton.auto_migrate_down!
     end
   end
+  
+  describe 'finding models' do
+    before(:each) do
+      Bozon.auto_migrate!
+    end
+    
+    it "should find simple strings" do
+      Bozon.create(:title => "Story")
+      Bozon.all(:title => "Story").length.should eql(1)
+    end
+    
+    it "should find strings containing spaces" do
+      
+      Bozon.create(:title => "Name with Space", :author => "Mr. Bean")
+      # [?(title = "Name with Space")][/id]
+      # debugger
+      Bozon.all(:title => "Name with Space").length.should eql(1)
+    end
+    
+    after(:all) do
+      Bozon.auto_migrate_down!
+    end
+  end
 end

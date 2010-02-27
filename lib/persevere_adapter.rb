@@ -357,11 +357,12 @@ module DataMapper
 
         resources = Array.new
         json_query, headers = make_json_query(query)
-
+        
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-        
+
         response = @persevere.retrieve(path, headers)
+
         if response.code.match(/20?/)
           results = JSON.parse(response.body)
           results.each do |rsrc_hash|
@@ -376,10 +377,8 @@ module DataMapper
               end
             end
           end
-
           resources = query.model.load(results, query)
         end
-
         # We could almost elimate this if regexp was working in persevere.
         query.match_records(resources)
       end
@@ -637,7 +636,11 @@ module DataMapper
               inside = process_condition(condition.operand) 
               inside.empty? ? [] : "!(%s)" % inside
             when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
-            when DataMapper::Query::Conditions::EqualToComparison then condition.to_s.gsub(' ', '').gsub('nil', 'undefined')              
+            when DataMapper::Query::Conditions::EqualToComparison then
+              cond = condition.loaded_value
+              cond = 'undefined' if condition.loaded_value.nil?
+              cond = "\"#{condition.loaded_value}\"" if condition.loaded_value.is_a?(String)
+              "#{condition.subject.name.to_s}=#{cond}"
             when DataMapper::Query::Conditions::NullOperation then []
             when Array then
                old_statement, bind_values = condition

@@ -70,7 +70,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('POST', path, json_blob, HEADERS.merge(headers))
+        response = @persevere.send_request('POST', URI.encode(path), json_blob, HEADERS.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Create Failed: #{e}, Trying again."
@@ -83,7 +83,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('GET', path, nil, HEADERS.merge(headers))
+        response = @persevere.send_request('GET', URI.encode(path), nil, HEADERS.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Retrieve Failed: #{e}, Trying again."
@@ -97,7 +97,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('PUT', path, json_blob, HEADERS.merge(headers))
+        response = @persevere.send_request('PUT', URI.encode(path), json_blob, HEADERS.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Create Failed: #{e}, Trying again."
@@ -110,7 +110,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('DELETE', path, nil, HEADERS.merge(headers))
+        response = @persevere.send_request('DELETE', URI.encode(path), nil, HEADERS.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Create Failed: #{e}, Trying again."
