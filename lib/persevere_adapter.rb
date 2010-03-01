@@ -369,7 +369,11 @@ module DataMapper
             # Typecast attributes, DM expects them properly cast
             query.model.properties.each do |prop|
               value = rsrc_hash[prop.field.to_s]
-              rsrc_hash[prop.field.to_s] = prop.typecast(value) unless value.nil?
+              if prop.field == 'id'
+                rsrc_hash[prop.field.to_s]  = value.to_s.match(/\d+$/)[0].to_i
+              else
+                rsrc_hash[prop.field.to_s] = prop.typecast(value) unless value.nil?
+              end
               # Shift date/time objects to the correct timezone because persevere is UTC
               case prop 
                 when DateTime then rsrc_hash[prop.field.to_s] = value.new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24))
@@ -381,6 +385,7 @@ module DataMapper
         end
         # We could almost elimate this if regexp was working in persevere.
         query.match_records(resources)
+        # resources
       end
 
       alias :read :read_many
@@ -656,6 +661,7 @@ module DataMapper
         query_terms = Array.new
         order_operations = Array.new
         field_ops = Array.new
+        fields = Array.new
         headers = Hash.new
 
         query_terms << process_condition(query.conditions) 
@@ -690,6 +696,8 @@ module DataMapper
             when :avg
               "[=#{field.target.name}]"
           end
+        else
+          fields << "#{field.name}:#{field.name}"
         end
         end
            
@@ -705,6 +713,8 @@ module DataMapper
         end
 
         json_query += order_operations.join("")
+
+        json_query += "[={" + fields.join(',') + "}]" unless fields.empty?
 
         offset = query.offset.to_i
         limit = query.limit.nil? ? nil : query.limit.to_i + offset - 1
