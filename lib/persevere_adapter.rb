@@ -360,7 +360,7 @@ module DataMapper
         
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-
+        puts path
         response = @persevere.retrieve(path, headers)
 
         if response.code.match(/20?/)
@@ -638,8 +638,9 @@ module DataMapper
             when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
             when DataMapper::Query::Conditions::EqualToComparison then
               cond = condition.loaded_value
-              cond = 'undefined' if condition.loaded_value.nil?
-              cond = "\"#{condition.loaded_value}\"" if condition.loaded_value.is_a?(String)
+              cond = 'undefined' if cond.nil?
+              cond = "\"#{cond}\"" if cond.is_a?(String)
+              cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
               "#{condition.subject.name.to_s}=#{cond}"
             when DataMapper::Query::Conditions::NullOperation then []
             when Array then

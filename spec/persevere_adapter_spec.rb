@@ -240,10 +240,10 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
     
     it "should find by DateTime" do
-      b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard')
-      created_at_time = b.created_at
-      debugger
-      Bozon.all(:created_at => created_at_time).length.should eql(1)
+      time = Time.now
+      b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard', :created_at => time)
+      # debugger
+      Bozon.all(:created_at => time).length.should eql(1)
     end
     
     after(:all) do
