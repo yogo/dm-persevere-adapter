@@ -360,7 +360,7 @@ module DataMapper
         
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-        puts path
+
         response = @persevere.retrieve(path, headers)
 
         if response.code.match(/20?/)
