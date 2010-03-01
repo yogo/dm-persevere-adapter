@@ -239,6 +239,13 @@ describe DataMapper::Adapters::PersevereAdapter do
       Bozon.all(:title => "Name with Space").length.should eql(1)
     end
     
+    it "should find by DateTime" do
+      b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard')
+      created_at_time = b.created_at
+      debugger
+      Bozon.all(:created_at => created_at_time).length.should eql(1)
+    end
+    
     after(:all) do
       Bozon.auto_migrate_down!
     end

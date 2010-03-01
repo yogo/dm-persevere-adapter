@@ -24,6 +24,7 @@ module DataMapper
       json_hash = { "type" => tm[type][:primitive] }
       json_hash.merge!( tm[type].reject{ |key,value| key == :primitive } )
       json_hash.merge!({ "optional" => true }) unless required? == true
+      json_hash.merge!({ "unique"  => true})   if     unique? == true
       json_hash.merge!({"position" => @position }) unless @position.nil?
       # MIN
       # MAX
