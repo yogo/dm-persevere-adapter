@@ -706,11 +706,7 @@ module DataMapper
               "[=#{field.target.name}]"
           end
         else
-          if field.name.to_s.match(/\d/) != nil
-            fields << "'#{field.name}':'#{field.name}'"
-          else
-            fields << "#{field.name}:#{field.name}"
-          end
+          fields << "'#{field.name}':#{field.name}"
         end
         end
            

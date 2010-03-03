@@ -227,7 +227,7 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
   end
   
-  describe 'finding models' do
+  describe 'when finding models,' do
     before(:each) do
       Bozon.auto_migrate!
       Mukatron.auto_migrate!
@@ -249,7 +249,6 @@ describe DataMapper::Adapters::PersevereAdapter do
     it "should find by DateTime" do
       time = Time.now
       b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard', :created_at => time)
-      # debugger
       Bozon.all(:created_at => time).length.should eql(1)
     end
     
@@ -258,19 +257,22 @@ describe DataMapper::Adapters::PersevereAdapter do
       Bozon.create(:title => 'Tail')
       Bozon.all(:fields => [:title]).length.should == 2
     end
-    
+
     it "should retrieve properties that end in a number" do
       Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
       Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
-      Mukatron.all.length.should == 2
+
+      # /mukatron/[/id][={id:id,'street1':street1,'b8te':b8te,name:name}]
+      
       Mukatron.all(:fields => [:id,:street1]).length.should == 2
+      Mukatron.first(:fields => [:id,:street1]).street1.should == "11th"
     end
-    require 'ruby-debug'
+
     it "should retrieve properties that have a number in the middle" do
       Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
       Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
       # /mukatron/[/id][={'b8te':'b8te'}]
-      debugger
+
       Mukatron.all(:fields => [:b8te]).length.should == 2
     end
     
