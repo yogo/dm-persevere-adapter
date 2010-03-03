@@ -360,7 +360,7 @@ module DataMapper
         
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-
+        # puts path
         response = @persevere.retrieve(path, headers)
 
         if response.code.match(/20?/)
@@ -384,8 +384,16 @@ module DataMapper
           resources = query.model.load(results, query)
         end
         # We could almost elimate this if regexp was working in persevere.
-        query.match_records(resources)
-        # resources
+
+        # This won't work if the RegExp is nested more then 1 layer deep.
+        if query.conditions.class == DataMapper::Query::Conditions::AndOperation
+           regexp_conds = query.conditions.operands.select{ |obj| obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
+             (obj.is_a?(DataMapper::Query::Conditions::NotOperation) && obj.operand.is_a?(DataMapper::Query::Conditions::RegexpComparison))}
+           regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
+         
+         end
+        # query.match_records(resources)
+        resources
       end
 
       alias :read :read_many
@@ -643,9 +651,10 @@ module DataMapper
             when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
             when DataMapper::Query::Conditions::EqualToComparison then
               cond = condition.loaded_value
-              cond = 'undefined' if cond.nil?
+
               cond = "\"#{cond}\"" if cond.is_a?(String)
               cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
+              cond = 'undefined' if cond.nil?
               "#{condition.subject.name.to_s}=#{cond}"
             when DataMapper::Query::Conditions::NullOperation then []
             when Array then

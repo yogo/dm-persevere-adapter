@@ -17,8 +17,7 @@ describe DataMapper::Adapters::PersevereAdapter do
     class ::Bozon
       include DataMapper::Resource
 
-      # Persevere only does id's as strings.  
-      property :id, String, :serial => true
+      property :id, Serial
       property :author, String
       property :created_at, DateTime
       property :title, String
@@ -26,9 +25,7 @@ describe DataMapper::Adapters::PersevereAdapter do
 
     class ::Dataino
       include DataMapper::Resource
-
-      # Persevere only does id's as strings.  
-      property :id, String, :serial => true
+      property :id, Serial
       property :author, String
       property :created_at, DateTime
       property :title, String
@@ -192,7 +189,7 @@ describe DataMapper::Adapters::PersevereAdapter do
     it "should return data from an offset" do
       result = Bozon.all(:limit => 5, :offset => 10)
       result.length.should == 5
-      result.map { |item| item.id }.should == ["11", "12", "13", "14", "15"]
+      result.map { |item| item.id }.should == [11, 12, 13, 14, 15]
     end
 
     after(:all) do
