@@ -387,11 +387,11 @@ module DataMapper
 
         # This won't work if the RegExp is nested more then 1 layer deep.
         if query.conditions.class == DataMapper::Query::Conditions::AndOperation
-           regexp_conds = query.conditions.operands.select{ |obj| obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
+          regexp_conds = query.conditions.operands.select{ |obj| obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
              (obj.is_a?(DataMapper::Query::Conditions::NotOperation) && obj.operand.is_a?(DataMapper::Query::Conditions::RegexpComparison))}
-           regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
+          regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
          
-         end
+        end
         # query.match_records(resources)
         resources
       end
@@ -706,7 +706,11 @@ module DataMapper
               "[=#{field.target.name}]"
           end
         else
-          fields << "#{field.name}:#{field.name}"
+          if field.name.to_s.match(/\d/) != nil
+            fields << "'#{field.name}':'#{field.name}'"
+          else
+            fields << "#{field.name}:#{field.name}"
+          end
         end
         end
            

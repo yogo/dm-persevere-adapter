@@ -38,6 +38,15 @@ describe DataMapper::Adapters::PersevereAdapter do
       property :name, String
     end
     
+    class ::Mukatron
+      include DataMapper::Resource
+      
+      property :id, Serial
+      property :street1, String
+      property :b8te, String
+      property :name, String
+    end
+    
     @test_schema_hash = {
       'id' => 'Vanilla',
       'properties' => {
@@ -221,6 +230,7 @@ describe DataMapper::Adapters::PersevereAdapter do
   describe 'finding models' do
     before(:each) do
       Bozon.auto_migrate!
+      Mukatron.auto_migrate!
     end
     
     it "should find simple strings" do
@@ -243,8 +253,30 @@ describe DataMapper::Adapters::PersevereAdapter do
       Bozon.all(:created_at => time).length.should eql(1)
     end
     
+    it "should be able to pull one field" do
+      Bozon.create(:title => 'Story')
+      Bozon.create(:title => 'Tail')
+      Bozon.all(:fields => [:title]).length.should == 2
+    end
+    
+    it "should retrieve properties that end in a number" do
+      Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
+      Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
+      Mukatron.all.length.should == 2
+      Mukatron.all(:fields => [:id,:street1]).length.should == 2
+    end
+    require 'ruby-debug'
+    it "should retrieve properties that have a number in the middle" do
+      Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
+      Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
+      # /mukatron/[/id][={'b8te':'b8te'}]
+      debugger
+      Mukatron.all(:fields => [:b8te]).length.should == 2
+    end
+    
     after(:all) do
       Bozon.auto_migrate_down!
+      Mukatron.auto_migrate_down!
     end
   end
 end
