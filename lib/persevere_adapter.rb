@@ -370,7 +370,7 @@ module DataMapper
             query.model.properties.each do |prop|
               value = rsrc_hash[prop.field.to_s]
               if prop.field == 'id'
-                rsrc_hash[prop.field.to_s]  = value.to_s.match(/\d+$/)[0].to_i
+                rsrc_hash[prop.field.to_s]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
               else
                 rsrc_hash[prop.field.to_s] = prop.typecast(value) unless value.nil?
               end
@@ -453,7 +453,7 @@ module DataMapper
         if result.code == "200"
           schemas = [JSON.parse(result.body)].flatten.select{ |schema| not RESERVED_CLASSNAMES.include?(schema['id']) }
           schemas.each do |schema|
-            schema['properties']['id'] = { 'type' => "serial"}
+            schema['properties']['id'] = { 'type' => "string", 'index' => true }
           end
           return name.nil? ? schemas : schemas[0..0]
         else
