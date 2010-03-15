@@ -85,9 +85,9 @@ describe DataMapper::Adapters::PersevereAdapter do
     DataMapper::Model.descendants.each{|cur_model| cur_model.auto_migrate_down! }
   end
   
-   it_should_behave_like 'An Adapter'
+  it_should_behave_like 'An Adapter'
    
-   describe 'migrations' do
+  describe 'migrations' do
      it 'should create the Bozon storage' do
        Bozon.auto_migrate!
        Bozon.auto_migrate_down!
@@ -279,6 +279,33 @@ describe DataMapper::Adapters::PersevereAdapter do
     after(:all) do
       Bozon.auto_migrate_down!
       Mukatron.auto_migrate_down!
+    end
+  end
+  
+  describe 'when using a prefix' do
+    before(:all) do
+      @prefix = 'testprefix'
+      # This needs to point to a valid persevere server
+      @adapter2 = DataMapper.setup(:prefixtest, { :adapter => 'persevere', :host => 'localhost', :port => '8080', :attribute_prefix => @prefix })
+      @repository2 = DataMapper.repository(@adapter.name)
+      
+      DataMapper.repository(:prefixtest) do
+        Bozon.auto_migrate! 
+        Dataino.auto_migrate!
+      end
+    end
+    
+    it "should prefix all user defined attributes with the configuration prefix" do
+      json_schema = @adapter2.get_schema("bozon")
+      json_schema[0]['properties'].keys.each do |key|
+        key[0..9].should == @prefix unless key == "id"
+      end
+    end
+
+    it "should allow an id property, which will be prefixed"
+    
+    after(:all) do
+      DataMapper::Model.descendants.each{|cur_model| cur_model.auto_migrate_down! }
     end
   end
 end
