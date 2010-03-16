@@ -1,19 +1,18 @@
 module DataMapper
   module Model
     # module Json
-      def to_json_schema(repository_name = default_repository_name, prefix = "")
+      def to_json_schema(repository_name = default_repository_name)
         to_json_schema_compatible_hash(repository_name, prefix).to_json
       end
       
       #TODO: Add various options in.
-      def to_json_schema_compatible_hash(repository_name = default_repository_name, prefix = "")
-        usable_properties = properties.select { |p| p.name != :id }
+      def to_json_schema_compatible_hash(repository_name = default_repository_name)
+        usable_properties = properties.select { |p| p.field != 'id' }
         schema_hash = {}
         schema_hash['id'] = self.storage_name(repository_name)
         properties_hash = {}
         usable_properties.each do |p| 
-          p_name = prefix + p.name.to_s 
-          properties_hash[p_name.to_sym] = p.to_json_schema_hash(repository_name) 
+          properties_hash[p.name] = p.to_json_schema_hash(repository_name) 
         end
         schema_hash['properties'] = properties_hash
         schema_hash['prototype'] = {}
