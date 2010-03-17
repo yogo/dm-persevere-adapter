@@ -127,7 +127,7 @@ module DataMapper
         return false if storage_exists?(model.storage_name(name))
         return false if properties.empty?
 
-        schema_hash = model.to_json_schema_compatible_hash
+        schema_hash = model.to_json_schema_compatible_hash(model.default_repository_name, @attribute_prefix)
 
         return true unless put_schema(schema_hash) == false
         false
@@ -148,7 +148,7 @@ module DataMapper
           return properties
         end
 
-        new_schema_hash = model.to_json_schema_compatible_hash
+        new_schema_hash = model.to_json_schema_compatible_hash(model.default_repository_name, @attribute_prefix)
         current_schema_hash = get_schema(new_schema_hash['id'])[0]
         # Diff of what is there and what will be added.
 
@@ -174,7 +174,7 @@ module DataMapper
       # @api semipublic
       def destroy_model_storage(model)
         return true unless storage_exists?(model.storage_name(name))
-        schema_hash = model.to_json_schema_compatible_hash
+        schema_hash = model.to_json_schema_compatible_hash(model.default_repository_name, @attribute_prefix)
         return true unless delete_schema(schema_hash) == false
         false
       end
@@ -560,6 +560,8 @@ module DataMapper
         @classes = []
         @persevere = nil
         @prepped = false
+        @attribute_prefix = @options[:attribute_prefix] || ""
+        @attribute_prefix += "___" if ! @attribute_prefix.empty?
 
         connect
       end
