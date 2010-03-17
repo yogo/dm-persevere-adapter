@@ -255,6 +255,8 @@ describe DataMapper::Adapters::PersevereAdapter do
     it "should be able to pull one field" do
       Bozon.create(:title => 'Story')
       Bozon.create(:title => 'Tail')
+      
+      # /bozon/[/id][={'title':title}]
 
       Bozon.all(:fields => [:title]).length.should == 2
     end
