@@ -47,6 +47,13 @@ describe DataMapper::Adapters::PersevereAdapter do
       property :name, String
     end
     
+    class ::Pantsarator
+      include DataMapper::Resource
+      
+      property :id, String, :key => true
+      property :pants, Boolean, :field => 'trousers'
+    end
+    
     @test_schema_hash = {
       'id' => 'Vanilla',
       'properties' => {
@@ -231,6 +238,7 @@ describe DataMapper::Adapters::PersevereAdapter do
     before(:each) do
       Bozon.auto_migrate!
       Mukatron.auto_migrate!
+      Pantsarator.auto_migrate!
     end
     
     it "should find simple strings" do
@@ -279,9 +287,22 @@ describe DataMapper::Adapters::PersevereAdapter do
       Mukatron.all(:fields => [:b8te]).length.should == 2
     end
     
+    it "should works with fields and properties that have different names" do
+      Pantsarator.create(:id => 'pants', :pants => true)
+      Pantsarator.create(:id => 'underware', :pants => false)
+      
+      result = @adapter.get_schema("pantsarator")
+      result.should_not be_false
+      result[0]['properties'].keys.should include('trousers')
+      
+      Pantsarator.all(:pants => true).length.should eql 1
+      
+    end
+    
     after(:all) do
       Bozon.auto_migrate_down!
       Mukatron.auto_migrate_down!
+      Pantsarator.auto_migrate_down!
     end
   end
   

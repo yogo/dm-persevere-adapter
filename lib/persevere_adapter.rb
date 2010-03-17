@@ -147,7 +147,7 @@ module DataMapper
         if success = create_model_storage(model)
           return properties
         end
-
+        
         new_schema_hash = model.to_json_schema_compatible_hash()
         current_schema_hash = get_schema(new_schema_hash['id'])[0]
         # Diff of what is there and what will be added.
@@ -157,7 +157,7 @@ module DataMapper
           prop_type = property.type
           next if prop_name == 'id' || 
                   (current_schema_hash['properties'].has_key?(prop_name) && 
-                  new_schema_hash['properties'][prop_name.to_sym]['type'] == current_schema_hash['properties'][prop_name]['type'] )
+                  new_schema_hash['properties'][prop_name]['type'] == current_schema_hash['properties'][prop_name]['type'] )
           property
         end.compact
         
@@ -640,7 +640,7 @@ module DataMapper
             # without regular expressions, the like operator is inordinately challenging hence we pass it back
             # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
             when DataMapper::Query::Conditions::RegexpComparison then []
-            when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.name.to_s}='#{condition.loaded_value.gsub('%', '*')}'"
+            when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.field}='#{condition.loaded_value.gsub('%', '*')}'"
             when DataMapper::Query::Conditions::AndOperation then 
               inside = condition.operands.map { |op| process_condition(op) }.flatten
               inside.empty? ? []  : "(#{inside.join("&")})"
@@ -655,7 +655,7 @@ module DataMapper
               cond = "\"#{cond}\"" if cond.is_a?(String)
               cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
               cond = 'undefined' if cond.nil?
-              "#{condition.subject.name.to_s}=#{cond}"
+              "#{condition.subject.field}=#{cond}"
             when DataMapper::Query::Conditions::NullOperation then []
             when Array then
                old_statement, bind_values = condition
@@ -684,29 +684,29 @@ module DataMapper
           field_ops << case field.operator
             when :count then
               if field.target.is_a?(DataMapper::Property)
-                "[?#{field.target.name}!=undefined].length"
+                "[?#{field.target.field}!=undefined].length"
               else # field.target is all.
                 ".length"
               end
             when :min
               if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
-                "[=#{field.target.name}]"
+                "[=#{field.target.field}]"
               else
-                ".min(?#{field.target.name})"
+                ".min(?#{field.target.field})"
               end
             when :max
               if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
-                "[=#{field.target.name}]"
+                "[=#{field.target.field}]"
               else
-                ".max(?#{field.target.name})"
+                ".max(?#{field.target.field})"
               end
             when :sum
-              ".sum(?#{field.target.name})"
+              ".sum(?#{field.target.field})"
             when :avg
-              "[=#{field.target.name}]"
+              "[=#{field.target.field}]"
           end
         else
-          fields << "'#{field.name}':#{field.name}"
+          fields << "'#{field.field}':#{field.field}"
         end
         end
            
