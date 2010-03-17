@@ -251,10 +251,13 @@ describe DataMapper::Adapters::PersevereAdapter do
       b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard', :created_at => time)
       Bozon.all(:created_at => time).length.should eql(1)
     end
-    
+    require 'ruby-debug'
     it "should be able to pull one field" do
       Bozon.create(:title => 'Story')
       Bozon.create(:title => 'Tail')
+      
+      # /bozon/[/id][={'title':title}]
+
       Bozon.all(:fields => [:title]).length.should == 2
     end
 

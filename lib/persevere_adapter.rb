@@ -367,7 +367,7 @@ module DataMapper
           results = JSON.parse(response.body)
           results.each do |rsrc_hash|
             # Typecast attributes, DM expects them properly cast
-            query.model.properties.each do |prop|
+            query.fields.each do |prop|
               value = rsrc_hash[prop.field.to_s]
               if prop.field == 'id'
                 rsrc_hash[prop.field.to_s]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
