@@ -453,7 +453,7 @@ module DataMapper
         if result.code == "200"
           schemas = [JSON.parse(result.body)].flatten.select{ |schema| not RESERVED_CLASSNAMES.include?(schema['id']) }
           schemas.each do |schema|
-            schema['properties']['id'] = { 'type' => "string", 'index' => true }
+            schema['properties']['id'] = { 'type' => "serial", 'index' => true }
           end
           return name.nil? ? schemas : schemas[0..0]
         else
