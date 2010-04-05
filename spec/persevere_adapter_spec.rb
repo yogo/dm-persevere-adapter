@@ -120,7 +120,7 @@ describe DataMapper::Adapters::PersevereAdapter do
        it 'should create the json schema for the hash under the specified project' do
          @adapter.put_schema(@test_schema_hash_alt).should_not == false
        end 
-     end
+    end
    
      describe '#get_schema' do       
        it 'should return all of the schemas (in json) if no name is provided' do
