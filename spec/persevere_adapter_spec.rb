@@ -89,7 +89,7 @@ describe DataMapper::Adapters::PersevereAdapter do
   end
 
   after :all do 
-    DataMapper::Model.descendants.each{|cur_model| cur_model.auto_migrate_down! }
+   DataMapper::Model.descendants.each{|cur_model| cur_model.auto_migrate_down! }
   end
   
   it_should_behave_like 'An Adapter'
@@ -306,4 +306,55 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
   end
   
+  describe 'associations' do
+    before(:all) do
+      class ::Post
+        include DataMapper::Resource
+
+        property :id, Serial
+        property :title, String
+        property :body, Text
+        
+        has n, :comments
+      end
+
+      class ::Comment
+        include DataMapper::Resource
+
+        property :id,     Serial
+        property :contents, Text
+        property :rating, Integer
+
+        belongs_to :post
+
+        def self.popular
+          all(:rating.gt => 3)
+        end
+      end
+    end
+    
+    before(:each) do
+      Post.auto_migrate!
+      Comment.auto_migrate!
+    end
+    
+    it "should create associations between models" do
+      # Setup
+      post = Post.create(:title => "Test Post", :body => "This is the body of the test post.")
+      comment = Comment.create(:contents => "I think the post is great!", :rating => 4, :post_id => 1)
+      comm = post.comments.create(:contents => "I think the post is not great.", :rating => 2)
+      comm.save
+      comment.save
+      post.comments << comment
+      post.save
+      
+      # confirm it actually works with tests
+      post.comments.length.should eql 2
+    end
+    
+    after(:all) do
+      Post.auto_migrate_down!
+      Comment.auto_migrate_down!
+    end
+  end
 end
