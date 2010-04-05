@@ -28,7 +28,8 @@ module DataMapper
       json_hash.merge!({ "optional" => true }) unless required?
       json_hash.merge!({ "unique"  => true})   if     unique?
       json_hash.merge!({"position" => @position }) unless @position.nil?
-      json_hash.merge!({"display_name" => @display_name }) unless @display_name.nil?
+      json_hash.merge!({"prefix" => @prefix }) unless @prefix.nil?
+      json_hash.merge!({"separator" => @separator }) unless @separator.nil?
       # MIN
       # MAX
       json_hash
