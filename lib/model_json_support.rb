@@ -10,27 +10,43 @@ module DataMapper
         removable_fields = []
         relationship_properties = {}
         unless relationships.empty?
-          puts "Class is #{self.name}"
-          relationships.each_pair do |key,value|
-            if value.parent_model.name == self.name
-              # add ref field to this object 
-
-              relationship_properties.merge!(value.name.to_s => { "$ref" => "../#{value.child_model.storage_name}"} )
-              puts "Child Key: #{value.child_model.name}"
-            else
-              # Remove field from this object
-              puts value.child_key.inspect
-              removable_fields << value.child_key.first.field
+          # puts "Class is #{self.name}"
+          relationships.each_pair do |key,relation|
+            case relation
+              when DataMapper::Associations::OneToOne::Relationship
+                # puts "One To One (has 1)"
+                relationship_properties.merge!(relation.name.to_s => { '$ref' => "../#{relation.child_model.storage_name}"})
+                removable_fields << relation.child_key.first.field
+                # puts relation.child_key.inspect
+                # puts "Child Key: #{relation.child_model.name}"
+              when DataMapper::Associations::ManyToOne::Relationship
+                # puts "Many To One (belongs_to)"
+                relationship_properties.merge!(relation.name.to_s => { '$ref' => "../#{relation.parent_model.storage_name}"})
+                removable_fields << relation.child_key.first.field
+                # puts relation.child_key.inspect
+                # puts "Child Key: #{relation.child_model.name}"
+              when DataMapper::Associations::ManyToMany::Relationship
+                # puts "Many To Many (has n/has n)"
+                relationship_properties.merge!(relation.name.to_s => { "type" => "array", "items" => {'$ref' => "../#{relation.child_model.storage_name}"} } )
+                removable_fields << relation.parent_key.first.field
+                # puts relation.parent_key.inspect
+                # puts "Parent Key: #{relation.parent_model.name}"
+              when DataMapper::Associations::OneToMany::Relationship
+                # puts "One To Many (belongs_to/has n)"
+                relationship_properties.merge!(relation.name.to_s => { "type" => "array", "items" => {'$ref' => "../#{relation.child_model.storage_name}"} } )
+                removable_fields << relation.child_key.first.field
+                # puts relation.child_key.inspect
+                # puts "Child Key: #{relation.child_model.name}"
             end
-            puts
-            puts "Key #{key}"
-            puts value.class.name
-            puts value.inspect
-            puts "Parent Key: #{value.parent_model.name} "
-            puts
+            # puts
+            # puts "Key #{key}"
+            # puts relation.class.name
+            # puts relation.inspect
+            # puts "Parent Key: #{relation.parent_model.name} "
+            # puts
           end
         end
-        puts removable_fields.inspect
+        # puts removable_fields.inspect
         usable_properties = properties.select { |p| !(p.field == 'id' || removable_fields.include?(p.field))}
         schema_hash = {}
         schema_hash['id'] = self.storage_name(repository_name)
@@ -38,8 +54,8 @@ module DataMapper
         usable_properties.each do |p| 
           properties_hash[p.field] = p.to_json_schema_hash(repository_name) 
         end
-        require 'pp'
-        pp properties_hash
+        # require 'pp'
+        # pp properties_hash
         schema_hash['properties'] = properties_hash
         schema_hash['prototype'] = {}
         return schema_hash

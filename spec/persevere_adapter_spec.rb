@@ -308,52 +308,73 @@ describe DataMapper::Adapters::PersevereAdapter do
   
   describe 'associations' do
     before(:all) do
-      class ::Post
+      class ::BlogPost
         include DataMapper::Resource
-
         property :id, Serial
         property :title, String
         property :body, Text
-        
-        has n, :comments
-      end
+     end
 
       class ::Comment
         include DataMapper::Resource
-
         property :id,     Serial
         property :contents, Text
         property :rating, Integer
-
-        belongs_to :post
-
-        def self.popular
-          all(:rating.gt => 3)
-        end
       end
+      
+      class ::Author
+        include DataMapper::Resource
+        property :id,     Serial
+        property :name, String
+      end
+
+      class ::Address
+        include DataMapper::Resource
+        property :id,     Serial
+        property :addr,   String
+      end      
     end
     
     before(:each) do
-      Post.auto_migrate!
+      BlogPost.auto_migrate!
+      Author.auto_migrate!
       Comment.auto_migrate!
+      Address.auto_migrate!
     end
     
     it "should create associations between models" do
-      # Setup
-      post = Post.create(:title => "Test Post", :body => "This is the body of the test post.")
-      comment = Comment.create(:contents => "I think the post is great!", :rating => 4, :post_id => 1)
-      comm = post.comments.create(:contents => "I think the post is not great.", :rating => 2)
+      require 'ruby-debug'
+
+      # Create the relations
+      BlogPost.send(:has, 1.0/0, :comments)
+      BlogPost.send(:has, 1.0/0, :authors, {:through => DataMapper::Resource})
+      BlogPost.auto_upgrade!
+      Author.send(:has, 1.0/0, :blog_posts, {:through => DataMapper::Resource})
+      Author.send(:has, 1, :address)
+      Author.auto_upgrade!
+      Address.send(:belongs_to, :author)
+      Address.auto_upgrade!
+      Comment.send(:belongs_to, :blog_post)
+      Comment.auto_upgrade!
+      debugger
+      
+      # Create the instances
+      bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
+      comment = Comment.create(:contents => "I think the post is great!", :rating => 4)
+      comm = bpost.comments.create(:contents => "I think the post is not great.", :rating => 2)
       comm.save
       comment.save
-      post.comments << comment
-      post.save
+      bpost.comments << comment
+      bpost.save
       
       # confirm it actually works with tests
-      post.comments.length.should eql 2
+      bpost.comments.length.should eql 2
     end
     
     after(:all) do
-      Post.auto_migrate_down!
+      BlogPost.auto_migrate_down!
+      Author.auto_migrate_down!
+      Address.auto_migrate_down!
       Comment.auto_migrate_down!
     end
   end
