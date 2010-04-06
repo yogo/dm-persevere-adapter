@@ -66,7 +66,7 @@ describe Persevere do
        JSON.parse(result.body).should == @blobObj
        # This shouldn't be a 201, it should say something mean.
      end
-   end
+  end
   
    #
    # Test GET to retrieve the list of classes from Persvr
