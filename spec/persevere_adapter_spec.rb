@@ -313,6 +313,8 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :id, Serial
         property :title, String
         property :body, Text
+        
+        # property :comment, JsonReference, :reference => ::Comment
      end
 
       class ::Comment
@@ -320,6 +322,8 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :id,     Serial
         property :contents, Text
         property :rating, Integer
+        
+        property :blog_post, JsonReference, :reference => BlogPost
       end
       
       class ::Author
@@ -340,35 +344,32 @@ describe DataMapper::Adapters::PersevereAdapter do
       Author.auto_migrate!
       Comment.auto_migrate!
       Address.auto_migrate!
+       BlogPost.send(:property, :comment, DataMapper::Types::JsonReference, :reference => Comment)
+        BlogPost.auto_migrate!
     end
     
     it "should create associations between models" do
       require 'ruby-debug'
 
-      # Create the relations
-      BlogPost.send(:has, 1.0/0, :comments)
-      BlogPost.send(:has, 1.0/0, :authors, {:through => DataMapper::Resource})
-      BlogPost.auto_upgrade!
-      Author.send(:has, 1.0/0, :blog_posts, {:through => DataMapper::Resource})
-      Author.send(:has, 1, :address)
-      Author.auto_upgrade!
-      Address.send(:belongs_to, :author)
-      Address.auto_upgrade!
-      Comment.send(:belongs_to, :blog_post)
-      Comment.auto_upgrade!
-      debugger
-      
       # Create the instances
       bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
-      comment = Comment.create(:contents => "I think the post is great!", :rating => 4)
-      comm = bpost.comments.create(:contents => "I think the post is not great.", :rating => 2)
-      comm.save
+      comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
+      comment.blog_post = bpost
+      # bpost.comment = comment
+      # bpost.save
       comment.save
-      bpost.comments << comment
-      bpost.save
+
+      # comm = bpost.comments.create(:contents => "I think the post is not great.", :rating => 2)
+      # comm.save
+      # comment.save
+      # bpost.comments << comment
+      # bpost.save
+      
+      Comment.first.blog_post.should be_kind_of(BlogPost)
+      Comment.first.blog_post.id.should eql(1)
       
       # confirm it actually works with tests
-      bpost.comments.length.should eql 2
+      # bpost.comments.length.should eql 2
     end
     
     after(:all) do
