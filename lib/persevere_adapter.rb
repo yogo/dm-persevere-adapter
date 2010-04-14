@@ -10,6 +10,7 @@ require 'model_json_support'
 require 'persevere'
 
 require 'types/json_reference'
+require 'types/json_reference_collection'
 
 class BigDecimal
   alias to_json_old to_json
@@ -602,9 +603,11 @@ module DataMapper
       def make_json_compatible_hash(resource)
         json_rsrc = Hash.new                
         resource.attributes(:property).each do |property, value|
-          next if value.nil?
 
-          if property.type == DataMapper::Types::JsonReference
+          next if value.nil? || (value.is_a?(Array) && value.empty?)
+
+          if property.type == DataMapper::Types::JsonReference || 
+             property.type == DataMapper::Types::JsonReferenceCollection
             json_rsrc[property.field] = property.value(value)
           else
             json_rsrc[property.field] = case value
@@ -618,7 +621,7 @@ module DataMapper
             end
           end
         end
-        # ap json_rsrc
+
         json_rsrc
       end
 

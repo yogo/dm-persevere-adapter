@@ -344,12 +344,11 @@ describe DataMapper::Adapters::PersevereAdapter do
       Author.auto_migrate!
       Comment.auto_migrate!
       Address.auto_migrate!
-       BlogPost.send(:property, :comment, DataMapper::Types::JsonReference, :reference => Comment)
-        BlogPost.auto_migrate!
+      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => Comment)
+      BlogPost.auto_migrate!
     end
     
     it "should create associations between models" do
-      require 'ruby-debug'
 
       # Create the instances
       bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
@@ -358,18 +357,23 @@ describe DataMapper::Adapters::PersevereAdapter do
       # bpost.comment = comment
       # bpost.save
       comment.save
-
-      # comm = bpost.comments.create(:contents => "I think the post is not great.", :rating => 2)
-      # comm.save
-      # comment.save
-      # bpost.comments << comment
-      # bpost.save
       
       Comment.first.blog_post.should be_kind_of(BlogPost)
       Comment.first.blog_post.id.should eql(1)
       
       # confirm it actually works with tests
       # bpost.comments.length.should eql 2
+    end
+    
+    it "should be able to handle collections of relationships" do
+      bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
+
+      bpost.comments = [Comment.new(:contents => "This is the best", :rating => 5)]
+      bpost.save
+      BlogPost.first.comments.should be_kind_of(Array)
+      BlogPost.first.comments.length.should eql(1)
+      BlogPost.first.comments.first.should be_kind_of(Comment)
+
     end
     
     after(:all) do

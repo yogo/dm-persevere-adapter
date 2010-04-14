@@ -24,8 +24,16 @@ module DataMapper
     def to_json_schema_hash(repo)
       tm = repository(repo).adapter.type_map
       json_hash = {}
+      
       if type.eql?(DataMapper::Types::JsonReference)
         json_hash = { "type" => {"$ref" => "../#{@reference_class.storage_name}"}, "optional" => true }
+      elsif type.eql?(DataMapper::Types::JsonReferenceCollection)
+        json_hash = { "type" => "array", 
+                      "optional" => true,  
+                      "items" => {"$ref" => "../#{@reference_class.storage_name}"}
+                    }
+        #  "maxItems" => # For 0..3 
+        #  "minItems" =>
       else
         json_hash = { "type" => tm[type][:primitive] }
         json_hash.merge!( tm[type].reject{ |key,value| key == :primitive } )
