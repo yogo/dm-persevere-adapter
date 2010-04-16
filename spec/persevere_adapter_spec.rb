@@ -344,7 +344,7 @@ describe DataMapper::Adapters::PersevereAdapter do
       Author.auto_migrate!
       Comment.auto_migrate!
       Address.auto_migrate!
-      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => Comment)
+      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => :Comment)
       BlogPost.auto_migrate!
     end
     

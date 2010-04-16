@@ -26,11 +26,11 @@ module DataMapper
       json_hash = {}
       
       if type.eql?(DataMapper::Types::JsonReference)
-        json_hash = { "type" => {"$ref" => "../#{@reference_class.storage_name}"}, "optional" => true }
+        json_hash = { "type" => {"$ref" => "../#{reference_class.storage_name}"}, "optional" => true }
       elsif type.eql?(DataMapper::Types::JsonReferenceCollection)
         json_hash = { "type" => "array", 
                       "optional" => true,  
-                      "items" => {"$ref" => "../#{@reference_class.storage_name}"}
+                      "items" => {"$ref" => "../#{reference_class.storage_name}"}
                     }
         #  "maxItems" => # For 0..3 
         #  "minItems" =>
@@ -48,5 +48,6 @@ module DataMapper
       # MAX
       json_hash
     end
+    
   end
 end

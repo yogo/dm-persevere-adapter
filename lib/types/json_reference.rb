@@ -41,7 +41,6 @@ module DataMapper
       def self.bind(property)
         property.instance_eval <<-RUBY, __FILE__, __LINE__ + 1
           def primitive?(value)
-            puts "This is my primitive!"
 
             value.kind_of?(Array)
           end
@@ -51,15 +50,4 @@ module DataMapper
     end
   end
   
-  class Property
-    attr_accessor :reference_class
-    
-    alias initialize_without_reference_class initialize
-    def initialize_with_reference_class(model, name, type, options = {})
-      @reference_class = options.delete(:reference)
-      
-      initialize_without_reference_class(model, name, type, options)
-    end
-    alias initialize initialize_with_reference_class
-  end
 end

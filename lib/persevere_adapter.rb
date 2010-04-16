@@ -9,6 +9,7 @@ require 'bigdecimal'
 require 'model_json_support'
 require 'persevere'
 
+require 'types/property'
 require 'types/json_reference'
 require 'types/json_reference_collection'
 
