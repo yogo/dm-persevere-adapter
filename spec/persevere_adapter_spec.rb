@@ -374,6 +374,9 @@ describe DataMapper::Adapters::PersevereAdapter do
       BlogPost.first.comments.length.should eql(1)
       BlogPost.first.comments.first.should be_kind_of(Comment)
 
+      bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
+      bpost.save
+      BlogPost.first.comments.length.should eql(2)
     end
     
     after(:all) do
