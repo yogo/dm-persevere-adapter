@@ -1,4 +1,3 @@
-require 'ruby-debug'
 module DataMapper
   module Types
     class JsonReferenceCollection < Type
@@ -78,15 +77,4 @@ module DataMapper
     end
   end
 
-  # Setup in json_reference.rb
-  # class Property
-  #   attr_accessor :reference_class
-  #   
-  #   alias original_initialize initialize
-  #   def initialize(model, name, type, options = {})
-  #     @reference_class = options.delete(:reference)
-  #     
-  #     original_initialize(model, name, type, options)
-  #   end
-  # end
 end
