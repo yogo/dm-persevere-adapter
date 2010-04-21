@@ -477,7 +477,7 @@ module DataMapper
           end
         end
         schema_hash['properties'].delete('id') if schema_hash['properties'].has_key?('id')
-        schema_hash['extends'] = { "$ref" => "/Class/Versioned" }
+        schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -597,7 +597,7 @@ module DataMapper
         #
         # If the user specified a versioned datastore load the versioning REST code
         # 
-        if ! @classes.include?("Versioned")
+        if ! @classes.include?("Versioned") && @options[:versioned]
           json_contents = <<-EOF
           {
             id:"Versioned",

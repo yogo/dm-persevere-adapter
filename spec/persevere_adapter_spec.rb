@@ -11,7 +11,7 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
     # This needs to point to a valid persevere server
-    @adapter = DataMapper.setup(:default, { :adapter => 'persevere', :host => 'localhost', :port => '8080' })
+    @adapter = DataMapper.setup(:default, { :adapter => 'persevere', :host => 'localhost', :port => '8080', :versioned => true })
     @repository = DataMapper.repository(@adapter.name)
 
     class ::Bozon
