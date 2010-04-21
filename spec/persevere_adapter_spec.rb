@@ -112,6 +112,13 @@ describe DataMapper::Adapters::PersevereAdapter do
        it 'should create the json schema for the hash' do
          @adapter.put_schema(@test_schema_hash).should_not == false
        end 
+       
+       it 'should create the schema as an extension of the Versioned schema' do
+        @adapter.put_schema(@test_schema_hash).should_not == false
+        test_result = @adapter.get_schema(@test_schema_hash['id'])
+        puts test_result.inspect
+        test_result[0]['extends']['$ref'].should eql "Versioned"
+       end
    
        it 'should create the json schema for the hash under the specified project' do
          @adapter.put_schema(@test_schema_hash, "test").should_not == false

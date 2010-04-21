@@ -55,7 +55,7 @@ class Persevere
               'Content-Type' => 'application/json'
             } unless defined?(HEADERS)
 
-  attr_accessor :server_url, :pservr
+  attr_accessor :server_url, :persevere
 
 
   def initialize(url)

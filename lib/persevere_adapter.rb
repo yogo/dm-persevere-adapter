@@ -191,7 +191,7 @@ module DataMapper
       extend Chainable
       extend Deprecate
       
-      RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class', 'Object']
+      RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class', 'Object', 'Versioned']
 
       include Migrations::PersevereAdapter
 
@@ -477,6 +477,7 @@ module DataMapper
           end
         end
         schema_hash['properties'].delete('id') if schema_hash['properties'].has_key?('id')
+        schema_hash['extends'] = { "$ref" => "/Class/Versioned" }
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -555,7 +556,7 @@ module DataMapper
         uri_or_options.each do |k,v|
           @options[k.to_sym] = v
         end
-
+        
         @options[:scheme] = @options[:adapter]
         @options.delete(:scheme)
 
@@ -567,7 +568,7 @@ module DataMapper
 
         connect
       end
-
+      
       def connect
         if ! @prepped
           uri = URI::HTTP.build(@options).to_s
@@ -592,8 +593,48 @@ module DataMapper
         else
           puts "Error retrieving existing tables: ", result
         end
+        
+        #
+        # If the user specified a versioned datastore load the versioning REST code
+        # 
+        if ! @classes.include?("Versioned")
+          json_contents = <<-EOF
+          {
+            id:"Versioned",
+            prototype: {
+              getVersionMethod: function() { 
+                  return java.lang.Class.forName("org.persvr.data.Persistable").getMethod("getVersion"); 
+            },
+              isCurrentVersion: function() { return this.getVersionMethod.invoke(this).isCurrent(); },
+              getVersion: function() { return this.getVersionMethod.invoke(this).getVersionNumber(); },
+              getPreviousVersion: function() { 
+                var prev = getVersionMethod.invoke(this).getPreviousVersion();
+                return prev;
+              },
+              "representation:application/json+versioned": {
+                quality:0.2,
+                output:function(object) {
+                  var prev = object.getPreviousVersion();
+                  response.setContentType("application/json+versioned");
+                  response.getOutputStream().print(serialize({
+                    version: object.getVersion(),
+                    "parent-versions": prev ? [prev] : [],
+                    content: object
+                  }));
+                }
+              }
+            }
+          }
+          EOF
+          begin
+            response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), json_contents, { 'Content-Type' => 'application/javascript' } )
+          rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
+                Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+            puts "Persevere Create Failed: #{e}, Trying again."
+          end
+        end
       end
-
+      
       ##
       # Convert a DataMapper Resource to a JSON.
       #
