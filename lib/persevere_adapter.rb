@@ -598,36 +598,40 @@ module DataMapper
         # If the user specified a versioned datastore load the versioning REST code
         # 
         if ! @classes.include?("Versioned") && @options[:versioned]
-          json_contents = <<-EOF
+          versioned_class = <<-EOF
           {
-            id:"Versioned",
-            prototype: {
-              getVersionMethod: function() { 
-                  return java.lang.Class.forName("org.persvr.data.Persistable").getMethod("getVersion"); 
-            },
-              isCurrentVersion: function() { return this.getVersionMethod.invoke(this).isCurrent(); },
-              getVersion: function() { return this.getVersionMethod.invoke(this).getVersionNumber(); },
-              getPreviousVersion: function() { 
-                var prev = getVersionMethod.invoke(this).getPreviousVersion();
-                return prev;
-              },
-              "representation:application/json+versioned": {
-                quality:0.2,
-                output:function(object) {
-                  var prev = object.getPreviousVersion();
-                  response.setContentType("application/json+versioned");
-                  response.getOutputStream().print(serialize({
-                    version: object.getVersion(),
-                    "parent-versions": prev ? [prev] : [],
-                    content: object
-                  }));
-                }
+              id: "Versioned",
+              prototype: {
+                  getVersionMethod: function() {
+                      return java.lang.Class.forName("org.persvr.data.Persistable").getMethod("getVersion");
+                  },
+                  isCurrentVersion: function() {
+                      return this.getVersionMethod().invoke(this).isCurrent();
+                  },
+                  getVersion: function() {
+                      return this.getVersionMethod().invoke(this).getVersionNumber();
+                  },
+                  getPreviousVersion: function() {
+                      var prev = this.getVersionMethod().invoke(this).getPreviousVersion();
+                      return prev;
+                  },
+                  "representation:application/json+versioned": {
+                      quality: 0.2,
+                      output: function(object) {
+                          var prev = object.getPreviousVersion();
+                          response.setContentType("application/json+versioned");
+                          response.getOutputStream().print(serialize({
+                              version: object.getVersion(),
+                              "parent-versions": prev ? [prev] : [],
+                              content: object
+                          }));
+                      }
+                  }
               }
-            }
           }
           EOF
           begin
-            response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), json_contents, { 'Content-Type' => 'application/javascript' } )
+            response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), versioned_class, { 'Content-Type' => 'application/javascript' } )
           rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
                 Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
             puts "Persevere Create Failed: #{e}, Trying again."
