@@ -116,7 +116,6 @@ describe DataMapper::Adapters::PersevereAdapter do
        it 'should create the schema as an extension of the Versioned schema' do
         @adapter.put_schema(@test_schema_hash).should_not == false
         test_result = @adapter.get_schema(@test_schema_hash['id'])
-        puts test_result.inspect
         test_result[0]['extends']['$ref'].should eql "Versioned"
        end
    
@@ -191,7 +190,10 @@ describe DataMapper::Adapters::PersevereAdapter do
       @dragons   = Dragon.all
       @countries = Country.all
     end
+   
     it_should_behave_like 'An Aggregatable Class'
+    
+    it "should be able to get a count of objects within a range of dates"
     
     it "should count with like conditions" do
       Country.count(:name.like => '%n%').should == 4
@@ -237,6 +239,56 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
     
     after(:all) do
+      Nugaton.auto_migrate_down!
+    end
+  end
+  
+  # From Ryan's Gist:
+  # s = Patron::Session.new
+  # s.base_url = "http://localhost:8080"
+  # s.headers['Content-Type'] = "application/json"
+  # resp = []
+  # resp << s.put("/Versioned/1", %{{"id":1, "name":"first version"}})
+  # resp << s.put("/Versioned/1", %{{"id":1, "name":"second version"}})
+  # resp << s.put("/Versioned/1", %{{"id":1, "name":"third version"}})
+  # resp << s.get("/Versioned/1")
+  # resp << s.get("/Versioned/1", {"Accept" => "application/json+versioned"})
+  # 
+  # resp.each do |r|
+  #   puts r.status
+  #   puts r.headers['Content-Type']
+  #   puts r.body
+  #   puts
+  # end
+  
+  describe 'when using versioned data' do
+    before(:each) do
+      Nugaton.auto_migrate!
+    end
+    
+    it "should store all the versions of the data element" do
+      version = 1
+      
+      # Create the first version
+      nugat = Nugaton.create(:name => "version #{version}")
+      
+      # Create a second version
+      nugat.name = "version #{version += 1}"
+      nugat.save
+      
+      # Create a third version
+      
+      nugat.name = "version #{version += 1}"
+      nugat.save
+      
+      # Retrieve all versions and see if there are three
+      raw_result = @adapter.persevere.retrieve("/nugaton/1", { "Accept" => "application/json+versioned" })
+      results = JSON.parse( raw_result.body )
+      results['current']['name'].should eql "version #{version}"
+      results['versions'].length.should eql 2
+    end
+    
+    after(:each) do
       Nugaton.auto_migrate_down!
     end
   end
