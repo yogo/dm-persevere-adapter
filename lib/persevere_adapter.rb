@@ -637,7 +637,7 @@ module DataMapper
                       output: function(object) {
                           var previous = object.getAllPrevious();
                           response.setContentType("application/json+versioned");
-                          response.getOutputStream().print(serialize({
+                          response.getOutputStream().print(JSON.stringify({
                               version: object.getVersionNumber(),
                               current: object,
                               versions: previous
