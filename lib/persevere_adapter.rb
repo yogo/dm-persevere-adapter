@@ -608,22 +608,36 @@ module DataMapper
                   isCurrentVersion: function() {
                       return this.getVersionMethod().invoke(this).isCurrent();
                   },
-                  getVersion: function() {
+                  getVersionNumber: function() {
                       return this.getVersionMethod().invoke(this).getVersionNumber();
                   },
-                  getPreviousVersion: function() {
-                      var prev = this.getVersionMethod().invoke(this).getPreviousVersion();
-                      return prev;
+                  getPrevious: function() {
+                    var prev = this.getVersionMethod().invoke(this).getPreviousVersion();
+                    return prev;
+                  },
+                  getAllPrevious: function() {
+
+                      var current = this;
+                      var prev = current && current.getPrevious();
+
+                      var versions = []
+                      while(current && prev) {
+                        versions.push(prev);
+                        current = prev;
+                        prev = current.getPrevious();
+                      }
+
+                      return versions;
                   },
                   "representation:application/json+versioned": {
                       quality: 0.2,
                       output: function(object) {
-                          var prev = object.getPreviousVersion();
+                          var previous = object.getAllPrevious();
                           response.setContentType("application/json+versioned");
                           response.getOutputStream().print(serialize({
-                              version: object.getVersion(),
-                              "parent-versions": prev ? [prev] : [],
-                              content: object
+                              version: object.getVersionNumber(),
+                              current: object,
+                              versions: previous
                           }));
                       }
                   }
