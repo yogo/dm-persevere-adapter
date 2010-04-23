@@ -194,7 +194,7 @@ module DataMapper
       RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class', 'Object', 'Versioned']
 
       include Migrations::PersevereAdapter
-
+      
       # Default types for all data object based adapters.
       #
       # @return [Hash] default types for data objects adapters.
@@ -224,6 +224,9 @@ module DataMapper
           }.freeze
         end
       end
+      
+      # This should go away when we have more methods exposed to retrieve versioned data (and schemas)
+      attr_accessor :persevere
       
       ##
       # Used by DataMapper to put records into a data-store: "INSERT"
