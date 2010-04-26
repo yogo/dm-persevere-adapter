@@ -3,7 +3,7 @@ require 'dm-core'
 require 'dm-aggregates'
 require 'dm-types'
 require 'extlib'
-require 'json'
+# require 'json'
 require 'bigdecimal'
 
 require 'model_json_support'
@@ -708,6 +708,15 @@ module DataMapper
           end
         end
 
+        def munge_condition(condition)
+          cond = condition.loaded_value
+
+          cond = "\"#{cond}\"" if cond.is_a?(String)
+          cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
+          cond = 'undefined' if cond.nil?
+          return cond
+        end
+
         def process_condition(condition)
           case condition
             # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
@@ -724,12 +733,15 @@ module DataMapper
               inside.empty? ? [] : "!(%s)" % inside
             when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
             when DataMapper::Query::Conditions::EqualToComparison then
-              cond = condition.loaded_value
-
-              cond = "\"#{cond}\"" if cond.is_a?(String)
-              cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
-              cond = 'undefined' if cond.nil?
-              "#{condition.subject.field}=#{cond}"
+              "#{condition.subject.field}=#{munge_condition(condition)}"
+            when DataMapper::Query::Conditions::GreaterThanComparison then
+              "#{condition.subject.field}>#{munge_condition(condition)}"
+            when DataMapper::Query::Conditions::LessThanComparison then
+              "#{condition.subject.field}<#{munge_condition(condition)}"
+            when DataMapper::Query::Conditions::GreaterThanOrEqualToComparison then
+              "#{condition.subject.field}>=#{munge_condition(condition)}"
+            when DataMapper::Query::Conditions::LessThanOrEqualToComparison then
+              "#{condition.subject.field}<=#{munge_condition(condition)}"
             when DataMapper::Query::Conditions::NullOperation then []
             when Array then
                old_statement, bind_values = condition

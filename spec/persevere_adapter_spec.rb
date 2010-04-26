@@ -193,7 +193,18 @@ describe DataMapper::Adapters::PersevereAdapter do
    
     it_should_behave_like 'An Aggregatable Class'
     
-    it "should be able to get a count of objects within a range of dates"
+    it "should be able to get a count of objects within a range of dates" do
+      Bozon.auto_migrate!
+      orig_date = DateTime.now - 7
+      Bozon.create(:author => 'Robbie', :created_at => orig_date, :title => '1 week ago')
+      Bozon.create(:author => 'Ivan',   :created_at => DateTime.now, :title => 'About Now')
+      Bozon.create(:author => 'Sean',   :created_at => DateTime.now + 7, :title => 'Sometime later')
+
+      Bozon.count.should eql(3)
+      Bozon.count(:created_at => orig_date).should eql(1)
+      Bozon.count(:created_at.gt => orig_date).should eql(2)
+      Bozon.auto_migrate_down!
+    end
     
     it "should count with like conditions" do
       Country.count(:name.like => '%n%').should == 4
