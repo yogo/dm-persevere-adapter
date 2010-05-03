@@ -312,7 +312,7 @@ module DataMapper
 
         resources.each do |resource|
           tblname = resource.model.storage_name
-          path = "/#{tblname}/#{resource.id}"
+          path = "/#{tblname}/#{resource.key.first}"
 
           payload = make_json_compatible_hash(resource)
 
