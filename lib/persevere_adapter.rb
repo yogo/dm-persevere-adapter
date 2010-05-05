@@ -127,12 +127,19 @@ module DataMapper
       def create_model_storage(model)
         name       = self.name
         properties = model.properties_with_subclasses(name)
-
+        
+        
         return false if storage_exists?(model.storage_name(name))
         return false if properties.empty?
 
+        # Make sure storage for referenced objects exists
+        model.relationships.each_pair do |n, r|
+          if ! storage_exists?(r.child_model.storage_name)
+            put_schema({'id' => r.child_model.storage_name, 'properties' => {}})
+          end
+        end
         schema_hash = model.to_json_schema_compatible_hash()
-
+        
         return true unless put_schema(schema_hash) == false
         false
       end

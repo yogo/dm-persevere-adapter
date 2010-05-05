@@ -184,54 +184,54 @@ describe DataMapper::Adapters::PersevereAdapter do
      end
    end
 
-  describe 'aggregates' do
-    it_should_behave_like 'It Has Setup Resources'
-    before :all do
-      @dragons   = Dragon.all
-      @countries = Country.all
-    end
-   
-    it_should_behave_like 'An Aggregatable Class'
-    
-    it "should be able to get a count of objects within a range of dates" do
-      Bozon.auto_migrate!
-      orig_date = DateTime.now - 7
-      Bozon.create(:author => 'Robbie', :created_at => orig_date, :title => '1 week ago')
-      Bozon.create(:author => 'Ivan',   :created_at => DateTime.now, :title => 'About Now')
-      Bozon.create(:author => 'Sean',   :created_at => DateTime.now + 7, :title => 'Sometime later')
-
-      Bozon.count.should eql(3)
-      Bozon.count(:created_at => orig_date).should eql(1)
-      Bozon.count(:created_at.gt => orig_date).should eql(2)
-      Bozon.auto_migrate_down!
-    end
-    
-    it "should count with like conditions" do
-      Country.count(:name.like => '%n%').should == 4
-    end
-  end
-
-  describe 'limiting and offsets' do
-    before(:all) do
-      Bozon.auto_migrate!
-      (0..99).each{|i| Bozon.create!(:author => i, :title => i)}
-    end
-
-    it "should limit" do
-      result = Bozon.all(:limit => 2)
-      result.length.should == 2
-    end
-
-    it "should return data from an offset" do
-      result = Bozon.all(:limit => 5, :offset => 10)
-      result.length.should == 5
-      result.map { |item| item.id }.should == [11, 12, 13, 14, 15]
-    end
-
-    after(:all) do
-      Bozon.auto_migrate_down!
-    end
-  end
+  # describe 'aggregates' do
+  #   it_should_behave_like 'It Has Setup Resources'
+  #   before :all do
+  #     @dragons   = Dragon.all
+  #     @countries = Country.all
+  #   end
+  #  
+  #   it_should_behave_like 'An Aggregatable Class'
+  #   
+  #   it "should be able to get a count of objects within a range of dates" do
+  #     Bozon.auto_migrate!
+  #     orig_date = DateTime.now - 7
+  #     Bozon.create(:author => 'Robbie', :created_at => orig_date, :title => '1 week ago')
+  #     Bozon.create(:author => 'Ivan',   :created_at => DateTime.now, :title => 'About Now')
+  #     Bozon.create(:author => 'Sean',   :created_at => DateTime.now + 7, :title => 'Sometime later')
+  # 
+  #     Bozon.count.should eql(3)
+  #     Bozon.count(:created_at => orig_date).should eql(1)
+  #     Bozon.count(:created_at.gt => orig_date).should eql(2)
+  #     Bozon.auto_migrate_down!
+  #   end
+  #   
+  #   it "should count with like conditions" do
+  #     Country.count(:name.like => '%n%').should == 4
+  #   end
+  # end
+  # 
+  # describe 'limiting and offsets' do
+  #   before(:all) do
+  #     Bozon.auto_migrate!
+  #     (0..99).each{|i| Bozon.create!(:author => i, :title => i)}
+  #   end
+  # 
+  #   it "should limit" do
+  #     result = Bozon.all(:limit => 2)
+  #     result.length.should == 2
+  #   end
+  # 
+  #   it "should return data from an offset" do
+  #     result = Bozon.all(:limit => 5, :offset => 10)
+  #     result.length.should == 5
+  #     result.map { |item| item.id }.should == [11, 12, 13, 14, 15]
+  #   end
+  # 
+  #   after(:all) do
+  #     Bozon.auto_migrate_down!
+  #   end
+  # end
   
   describe 'auto updating models' do
     before :each do
@@ -385,6 +385,7 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :body, Text
         
         # property :comment, JsonReference, :reference => ::Comment
+        has n, :comments
      end
 
       class ::Comment
@@ -393,7 +394,10 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :contents, Text
         property :rating, Integer
         
-        property :blog_post, JsonReference, :reference => BlogPost
+        #property :blog_post, JsonReference, :reference => BlogPost
+        # This should be the same as:
+        # has 1, :blogpost
+        belongs_to :blog_post
       end
       
       class ::Author
@@ -414,8 +418,8 @@ describe DataMapper::Adapters::PersevereAdapter do
       Author.auto_migrate!
       Comment.auto_migrate!
       Address.auto_migrate!
-      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => :Comment)
-      BlogPost.auto_migrate!
+#      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => :Comment)
+#      BlogPost.auto_migrate!
     end
     
     it "should create associations between models" do
@@ -438,8 +442,12 @@ describe DataMapper::Adapters::PersevereAdapter do
     it "should be able to handle collections of relationships" do
       bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
 
-      bpost.comments = [Comment.new(:contents => "This is the best", :rating => 5)]
+      bpost.comments << Comment.new(:contents => "This is the best", :rating => 5)
       bpost.save
+      
+      require 'ruby-debug'
+      debugger
+      
       BlogPost.first.comments.should be_kind_of(Array)
       BlogPost.first.comments.length.should eql(1)
       BlogPost.first.comments.first.should be_kind_of(Comment)
@@ -447,6 +455,7 @@ describe DataMapper::Adapters::PersevereAdapter do
       bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
       bpost.save
       BlogPost.first.comments.length.should eql(2)
+
     end
     
     after(:all) do
