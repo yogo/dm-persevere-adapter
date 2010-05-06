@@ -18,7 +18,6 @@ module DataMapper
         
         # Handle relationships
         relationships.each_pair do |n,r|
-          # We only really care about Has 1 / Has n not belongs_to
           # require 'pp'
           # puts "Me: #{self.name}"
           # puts "Found Relationship:"

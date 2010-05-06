@@ -254,17 +254,15 @@ module DataMapper
         connect if @persevere.nil?
         created = 0
         resources.each do |resource|
+          puts "----> Processing a single resource"
           serial = resource.model.serial(self.name)
           path = "/#{resource.model.storage_name}/"
           payload = make_json_compatible_hash(resource)
-          
           payload.delete(:id)
-
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
           # exceptions when there's a problem
-
           if response.code == "201"# good:
             rsrc_hash = JSON.parse(response.body)
             # Typecast attributes, DM expects them properly cast
@@ -278,10 +276,15 @@ module DataMapper
               end
             end
 
+            puts "Result:"
+            pp rsrc_hash
+            
             serial.set!(resource, rsrc_hash["id"]) unless serial.nil?
 
             created += 1
           else
+            puts "Failed to create object with "
+            pp payload
             return false
           end
         end
@@ -671,26 +674,35 @@ module DataMapper
       #
       # @api semipublic
       def make_json_compatible_hash(resource)
-        json_rsrc = Hash.new                
-        resource.attributes(:property).each do |property, value|
+        model = resource.model
+        attributes = resource.dirty_attributes
+        json_rsrc = Hash.new
 
-          next if value.nil? || (value.is_a?(Array) && value.empty?)
+        model.relationships.each_value do |relation|
+          # This is where we put the references in the current object
+          # But what if they don't have id's (ie they haven't been saved yet?)
+          values = relation.get!(resource)
+          puts "#{resource.model.name} -> related to : #{values.inspect}"
+        end
 
-          if property.type == DataMapper::Types::JsonReference || 
-             property.type == DataMapper::Types::JsonReferenceCollection
-            json_rsrc[property.field] = property.value(value)
-          else
-            json_rsrc[property.field] = case value
-              when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
-              when Date then value.to_s
-              when Time then value.strftime("%H:%M:%S")
-              when Float then value.to_f
-              when BigDecimal then value.to_f
-              when Integer then value.to_i
-              else resource[property.name]
-            end
+        model.properties(name).each do |property|
+          next unless attributes.key?(property) || attributes[property].nil? || (attributes[property].is_a?(Array) && attributes[property].empty?)
+          value = attributes[property]
+
+          json_rsrc[property.field] = case value
+            when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
+            when Date then value.to_s
+            when Time then value.strftime("%H:%M:%S")
+            when Float then value.to_f
+            when BigDecimal then value.to_f
+            when Integer then value.to_i
+            else resource[property.name]
           end
         end
+
+        puts "JSON RSRC: "
+        pp json_rsrc
+        puts "-----"
 
         json_rsrc
       end

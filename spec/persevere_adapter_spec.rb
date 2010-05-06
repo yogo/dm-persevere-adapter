@@ -233,236 +233,218 @@ describe DataMapper::Adapters::PersevereAdapter do
   #   end
   # end
   
-  describe 'auto updating models' do
-    before :each do
-      Nugaton.auto_migrate!
-    end
-    
-    it "should auto upgrade correctly" do
-      before_schema = @adapter.get_schema('nugaton')[0]
-      before_schema['properties'].should have_key('name')
-      before_schema['properties'].should_not have_key('big_value')
-      Nugaton.send(:property, :big_value, Integer)
-      Nugaton.auto_upgrade!
-      before_schema = @adapter.get_schema('nugaton')[0]
-      before_schema['properties'].should have_key('name')
-      before_schema['properties'].should have_key('big_value')
-    end
-    
-    after(:all) do
-      Nugaton.auto_migrate_down!
-    end
-  end
-  
-  # From Ryan's Gist:
-  # s = Patron::Session.new
-  # s.base_url = "http://localhost:8080"
-  # s.headers['Content-Type'] = "application/json"
-  # resp = []
-  # resp << s.put("/Versioned/1", %{{"id":1, "name":"first version"}})
-  # resp << s.put("/Versioned/1", %{{"id":1, "name":"second version"}})
-  # resp << s.put("/Versioned/1", %{{"id":1, "name":"third version"}})
-  # resp << s.get("/Versioned/1")
-  # resp << s.get("/Versioned/1", {"Accept" => "application/json+versioned"})
-  # 
-  # resp.each do |r|
-  #   puts r.status
-  #   puts r.headers['Content-Type']
-  #   puts r.body
-  #   puts
+  # describe 'auto updating models' do
+  #   before :each do
+  #     Nugaton.auto_migrate!
+  #   end
+  #   
+  #   it "should auto upgrade correctly" do
+  #     before_schema = @adapter.get_schema('nugaton')[0]
+  #     before_schema['properties'].should have_key('name')
+  #     before_schema['properties'].should_not have_key('big_value')
+  #     Nugaton.send(:property, :big_value, Integer)
+  #     Nugaton.auto_upgrade!
+  #     before_schema = @adapter.get_schema('nugaton')[0]
+  #     before_schema['properties'].should have_key('name')
+  #     before_schema['properties'].should have_key('big_value')
+  #   end
+  #   
+  #   after(:all) do
+  #     Nugaton.auto_migrate_down!
+  #   end
   # end
   
-  describe 'when using versioned data' do
-    before(:each) do
-      Nugaton.auto_migrate!
-    end
-    
-    it "should store all the versions of the data element" do
-      version = 1
-      
-      # Create the first version
-      nugat = Nugaton.create(:name => "version #{version}")
-      
-      # Create a second version
-      nugat.name = "version #{version += 1}"
-      nugat.save
-      
-      # Create a third version
-      
-      nugat.name = "version #{version += 1}"
-      nugat.save
-      
-      # Retrieve all versions and see if there are three
-      raw_result = @adapter.persevere.retrieve("/nugaton/1", { "Accept" => "application/json+versioned" })
-      results = JSON.parse( raw_result.body )
-      results['current']['name'].should eql "version #{version}"
-      results['versions'].length.should eql 2
-    end
-    
-    after(:each) do
-      Nugaton.auto_migrate_down!
-    end
-  end
+  # describe 'when using versioned data' do
+  #   before(:each) do
+  #     Nugaton.auto_migrate!
+  #   end
+  #   
+  #   it "should store all the versions of the data element" do
+  #     version = 1
+  #     
+  #     # Create the first version
+  #     nugat = Nugaton.create(:name => "version #{version}")
+  #     
+  #     # Create a second version
+  #     nugat.name = "version #{version += 1}"
+  #     nugat.save
+  #     
+  #     # Create a third version
+  #     
+  #     nugat.name = "version #{version += 1}"
+  #     nugat.save
+  #     
+  #     # Retrieve all versions and see if there are three
+  #     raw_result = @adapter.persevere.retrieve("/nugaton/1", { "Accept" => "application/json+versioned" })
+  #     results = JSON.parse( raw_result.body )
+  #     results['current']['name'].should eql "version #{version}"
+  #     results['versions'].length.should eql 2
+  #   end
+  #   
+  #   after(:each) do
+  #     Nugaton.auto_migrate_down!
+  #   end
+  # end
   
-  describe 'when finding models,' do
-    before(:each) do
-      Bozon.auto_migrate!
-      Mukatron.auto_migrate!
-      Pantsarator.auto_migrate!
-    end
-    
-    it "should find simple strings" do
-      Bozon.create(:title => "Story")
-      Bozon.all(:title => "Story").length.should eql(1)
-    end
-    
-    it "should find strings containing spaces" do
-      
-      Bozon.create(:title => "Name with Space", :author => "Mr. Bean")
-      # [?(title = "Name with Space")][/id]
-      # debugger
-      Bozon.all(:title => "Name with Space").length.should eql(1)
-    end
-    
-    it "should find by DateTime" do
-      time = Time.now
-      b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard', :created_at => time)
-      Bozon.all(:created_at => time).length.should eql(1)
-    end
-
-    it "should be able to pull one field" do
-      Bozon.create(:title => 'Story')
-      Bozon.create(:title => 'Tail')
-      
-      # /bozon/[/id][={'title':title}]
-
-      Bozon.all(:fields => [:title]).length.should == 2
-    end
-
-    it "should retrieve properties that end in a number" do
-      Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
-      Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
-
-      # /mukatron/[/id][={id:id,'street1':street1,'b8te':b8te,name:name}]
-      
-      Mukatron.all(:fields => [:id,:street1]).length.should == 2
-      Mukatron.first(:fields => [:id,:street1]).street1.should == "11th"
-    end
-
-    it "should retrieve properties that have a number in the middle" do
-      Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
-      Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
-      # /mukatron/[/id][={'b8te':'b8te'}]
-
-      Mukatron.all(:fields => [:b8te]).length.should == 2
-    end
-    
-    it "should works with fields and properties that have different names" do
-      Pantsarator.create(:id => 'pants', :pants => true)
-      Pantsarator.create(:id => 'underware', :pants => false)
-      
-      result = @adapter.get_schema("pantsarator")
-      result.should_not be_false
-      result[0]['properties'].keys.should include('trousers')
-      
-      Pantsarator.all(:pants => true).length.should eql 1
-      
-    end
-    
-    after(:all) do
-      Bozon.auto_migrate_down!
-      Mukatron.auto_migrate_down!
-      Pantsarator.auto_migrate_down!
-    end
-  end
+  # describe 'when finding models,' do
+  #   before(:each) do
+  #     Bozon.auto_migrate!
+  #     Mukatron.auto_migrate!
+  #     Pantsarator.auto_migrate!
+  #   end
+  #   
+  #   it "should find simple strings" do
+  #     Bozon.create(:title => "Story")
+  #     Bozon.all(:title => "Story").length.should eql(1)
+  #   end
+  #   
+  #   it "should find strings containing spaces" do
+  #     
+  #     Bozon.create(:title => "Name with Space", :author => "Mr. Bean")
+  #     # [?(title = "Name with Space")][/id]
+  #     # debugger
+  #     Bozon.all(:title => "Name with Space").length.should eql(1)
+  #   end
+  #   
+  #   it "should find by DateTime" do
+  #     time = Time.now
+  #     b = Bozon.create(:title => "To Search with Date Time", :author => 'Bloo Reguard', :created_at => time)
+  #     Bozon.all(:created_at => time).length.should eql(1)
+  #   end
+  # 
+  #   it "should be able to pull one field" do
+  #     Bozon.create(:title => 'Story')
+  #     Bozon.create(:title => 'Tail')
+  #     
+  #     # /bozon/[/id][={'title':title}]
+  # 
+  #     Bozon.all(:fields => [:title]).length.should == 2
+  #   end
+  # 
+  #   it "should retrieve properties that end in a number" do
+  #     Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
+  #     Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
+  # 
+  #     # /mukatron/[/id][={id:id,'street1':street1,'b8te':b8te,name:name}]
+  #     
+  #     Mukatron.all(:fields => [:id,:street1]).length.should == 2
+  #     Mukatron.first(:fields => [:id,:street1]).street1.should == "11th"
+  #   end
+  # 
+  #   it "should retrieve properties that have a number in the middle" do
+  #     Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
+  #     Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
+  #     # /mukatron/[/id][={'b8te':'b8te'}]
+  # 
+  #     Mukatron.all(:fields => [:b8te]).length.should == 2
+  #   end
+  #   
+  #   it "should works with fields and properties that have different names" do
+  #     Pantsarator.create(:id => 'pants', :pants => true)
+  #     Pantsarator.create(:id => 'underware', :pants => false)
+  #     
+  #     result = @adapter.get_schema("pantsarator")
+  #     result.should_not be_false
+  #     result[0]['properties'].keys.should include('trousers')
+  #     
+  #     Pantsarator.all(:pants => true).length.should eql 1
+  #     
+  #   end
+  #   
+  #   after(:all) do
+  #     Bozon.auto_migrate_down!
+  #     Mukatron.auto_migrate_down!
+  #     Pantsarator.auto_migrate_down!
+  #   end
+  # end
   
-  describe 'associations' do
-    before(:all) do
-      class ::BlogPost
-        include DataMapper::Resource
-        property :id, Serial
-        property :title, String
-        property :body, Text
-        
-        # property :comment, JsonReference, :reference => ::Comment
-        has n, :comments
-     end
-
-      class ::Comment
-        include DataMapper::Resource
-        property :id,     Serial
-        property :contents, Text
-        property :rating, Integer
-        
-        #property :blog_post, JsonReference, :reference => BlogPost
-        # This should be the same as:
-        # has 1, :blogpost
-        belongs_to :blog_post
-      end
-      
-      class ::Author
-        include DataMapper::Resource
-        property :id,     Serial
-        property :name, String
-      end
-
-      class ::Address
-        include DataMapper::Resource
-        property :id,     Serial
-        property :addr,   String
-      end      
-    end
-    
-    before(:each) do
-      BlogPost.auto_migrate!
-      Author.auto_migrate!
-      Comment.auto_migrate!
-      Address.auto_migrate!
-#      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => :Comment)
-#      BlogPost.auto_migrate!
-    end
-    
-    it "should create associations between models" do
-
-      # Create the instances
-      bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
-      comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
-      comment.blog_post = bpost
-      # bpost.comment = comment
-      # bpost.save
-      comment.save
-      
-      Comment.first.blog_post.should be_kind_of(BlogPost)
-      Comment.first.blog_post.id.should eql(1)
-      
-      # confirm it actually works with tests
-      # bpost.comments.length.should eql 2
-    end
-    
-    it "should be able to handle collections of relationships" do
-      bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
-
-      bpost.comments << Comment.new(:contents => "This is the best", :rating => 5)
-      bpost.save
-      
-      require 'ruby-debug'
-      debugger
-      
-      BlogPost.first.comments.should be_kind_of(Array)
-      BlogPost.first.comments.length.should eql(1)
-      BlogPost.first.comments.first.should be_kind_of(Comment)
-
-      bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
-      bpost.save
-      BlogPost.first.comments.length.should eql(2)
-
-    end
-    
-    after(:all) do
-      BlogPost.auto_migrate_down!
-      Author.auto_migrate_down!
-      Address.auto_migrate_down!
-      Comment.auto_migrate_down!
-    end
-  end
+#   describe 'associations' do
+#     before(:all) do
+#       class ::BlogPost
+#         include DataMapper::Resource
+#         property :id, Serial
+#         property :title, String
+#         property :body, Text
+#         
+#         # property :comment, JsonReference, :reference => ::Comment
+#         has n, :comments
+#      end
+# 
+#       class ::Comment
+#         include DataMapper::Resource
+#         property :id,     Serial
+#         property :contents, Text
+#         property :rating, Integer
+#         
+#         #property :blog_post, JsonReference, :reference => BlogPost
+#         # This should be the same as:
+#         # has 1, :blogpost
+#         belongs_to :blog_post
+#       end
+#       
+#       class ::Author
+#         include DataMapper::Resource
+#         property :id,     Serial
+#         property :name, String
+#       end
+# 
+#       class ::Address
+#         include DataMapper::Resource
+#         property :id,     Serial
+#         property :addr,   String
+#       end      
+#     end
+#     
+#     before(:each) do
+#       BlogPost.auto_migrate!
+#       Author.auto_migrate!
+#       Comment.auto_migrate!
+#       Address.auto_migrate!
+# #      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => :Comment)
+# #      BlogPost.auto_migrate!
+#     end
+#     
+#     it "should create associations between models" do
+# 
+#       # Create the instances
+#       bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
+#       comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
+#       comment.blog_post = bpost
+#       # bpost.comment = comment
+#       # bpost.save
+#       comment.save
+#       
+#       Comment.first.blog_post.should be_kind_of(BlogPost)
+#       Comment.first.blog_post.id.should eql(1)
+#       
+#       # confirm it actually works with tests
+#       # bpost.comments.length.should eql 2
+#     end
+#     
+#     it "should be able to handle collections of relationships" do
+#       bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
+# 
+#       bpost.comments << Comment.new(:contents => "This is the best", :rating => 5)
+#       bpost.save
+#       
+#       require 'ruby-debug'
+#       debugger
+#       
+#       BlogPost.first.comments.should be_kind_of(Array)
+#       BlogPost.first.comments.length.should eql(1)
+#       BlogPost.first.comments.first.should be_kind_of(Comment)
+# 
+#       bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
+#       bpost.save
+#       BlogPost.first.comments.length.should eql(2)
+# 
+#     end
+#     
+#     after(:all) do
+#       BlogPost.auto_migrate_down!
+#       Author.auto_migrate_down!
+#       Address.auto_migrate_down!
+#       Comment.auto_migrate_down!
+#     end
+#   end
 end
