@@ -3,7 +3,6 @@ require 'dm-core'
 require 'dm-aggregates'
 require 'dm-types'
 require 'extlib'
-# require 'json'
 require 'bigdecimal'
 
 require 'model_json_support'
@@ -254,7 +253,7 @@ module DataMapper
         connect if @persevere.nil?
         created = 0
         resources.each do |resource|
-          puts "----> Processing a single resource"
+#          puts "----> Processing a single resource"
           serial = resource.model.serial(self.name)
           path = "/#{resource.model.storage_name}/"
           payload = make_json_compatible_hash(resource)
@@ -276,8 +275,8 @@ module DataMapper
               end
             end
 
-            puts "Result:"
-            pp rsrc_hash
+#            puts "Result:"
+#            pp rsrc_hash
             
             serial.set!(resource, rsrc_hash["id"]) unless serial.nil?
 
@@ -682,7 +681,7 @@ module DataMapper
           # This is where we put the references in the current object
           # But what if they don't have id's (ie they haven't been saved yet?)
           values = relation.get!(resource)
-          puts "#{resource.model.name} -> related to : #{values.inspect}"
+#          puts "#{resource.model.name} -> related to : #{values.inspect}"
         end
 
         model.properties(name).each do |property|
@@ -700,9 +699,9 @@ module DataMapper
           end
         end
 
-        puts "JSON RSRC: "
-        pp json_rsrc
-        puts "-----"
+        # puts "JSON RSRC: "
+        # pp json_rsrc
+        # puts "-----"
 
         json_rsrc
       end
