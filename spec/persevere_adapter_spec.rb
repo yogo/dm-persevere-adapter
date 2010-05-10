@@ -11,6 +11,7 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
     # This needs to point to a valid persevere server
+    DataMapper::Logger.new(STDOUT, :debug)
     @adapter = DataMapper.setup(:default, { :adapter => 'persevere', :host => 'localhost', :port => '8080', :versioned => true })
     @repository = DataMapper.repository(@adapter.name)
 
@@ -254,24 +255,6 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
   end
   
-  # From Ryan's Gist:
-  # s = Patron::Session.new
-  # s.base_url = "http://localhost:8080"
-  # s.headers['Content-Type'] = "application/json"
-  # resp = []
-  # resp << s.put("/Versioned/1", %{{"id":1, "name":"first version"}})
-  # resp << s.put("/Versioned/1", %{{"id":1, "name":"second version"}})
-  # resp << s.put("/Versioned/1", %{{"id":1, "name":"third version"}})
-  # resp << s.get("/Versioned/1")
-  # resp << s.get("/Versioned/1", {"Accept" => "application/json+versioned"})
-  # 
-  # resp.each do |r|
-  #   puts r.status
-  #   puts r.headers['Content-Type']
-  #   puts r.body
-  #   puts
-  # end
-  
   describe 'when using versioned data' do
     before(:each) do
       Nugaton.auto_migrate!
@@ -320,7 +303,6 @@ describe DataMapper::Adapters::PersevereAdapter do
       
       Bozon.create(:title => "Name with Space", :author => "Mr. Bean")
       # [?(title = "Name with Space")][/id]
-      # debugger
       Bozon.all(:title => "Name with Space").length.should eql(1)
     end
     
@@ -418,36 +400,36 @@ describe DataMapper::Adapters::PersevereAdapter do
       BlogPost.auto_migrate!
     end
     
-    it "should create associations between models" do
-
-      # Create the instances
-      bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
-      comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
-      comment.blog_post = bpost
-      # bpost.comment = comment
-      # bpost.save
-      comment.save
-      
-      Comment.first.blog_post.should be_kind_of(BlogPost)
-      Comment.first.blog_post.id.should eql(1)
-      
-      # confirm it actually works with tests
-      # bpost.comments.length.should eql 2
-    end
-    
-    it "should be able to handle collections of relationships" do
-      bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
-
-      bpost.comments = [Comment.new(:contents => "This is the best", :rating => 5)]
-      bpost.save
-      BlogPost.first.comments.should be_kind_of(Array)
-      BlogPost.first.comments.length.should eql(1)
-      BlogPost.first.comments.first.should be_kind_of(Comment)
-
-      bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
-      bpost.save
-      BlogPost.first.comments.length.should eql(2)
-    end
+    # it "should create associations between models" do
+    # 
+    #   # Create the instances
+    #   bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
+    #   comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
+    #   comment.blog_post = bpost
+    #   # bpost.comment = comment
+    #   # bpost.save
+    #   comment.save
+    #   
+    #   Comment.first.blog_post.should be_kind_of(BlogPost)
+    #   Comment.first.blog_post.id.should eql(1)
+    #   
+    #   # confirm it actually works with tests
+    #   # bpost.comments.length.should eql 2
+    # end
+    # 
+    # it "should be able to handle collections of relationships" do
+    #   bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
+    # 
+    #   bpost.comments = [Comment.new(:contents => "This is the best", :rating => 5)]
+    #   bpost.save
+    #   BlogPost.first.comments.should be_kind_of(Array)
+    #   BlogPost.first.comments.length.should eql(1)
+    #   BlogPost.first.comments.first.should be_kind_of(Comment)
+    # 
+    #   bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
+    #   bpost.save
+    #   BlogPost.first.comments.length.should eql(2)
+    # end
     
     after(:all) do
       BlogPost.auto_migrate_down!
