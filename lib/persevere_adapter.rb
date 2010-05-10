@@ -681,12 +681,11 @@ module DataMapper
           # This is where we put the references in the current object
           # But what if they don't have id's (ie they haven't been saved yet?)
           values = relation.get!(resource)
-#          puts "#{resource.model.name} -> related to : #{values.inspect}"
+          #puts "#{resource.model.name} -> related to : #{values.inspect}"
         end
 
-        model.properties(name).each do |property|
-          next unless attributes.key?(property) || attributes[property].nil? || (attributes[property].is_a?(Array) && attributes[property].empty?)
-          value = attributes[property]
+        resource.attributes(:property).each do |property, value|
+          next if value.nil? || (value.is_a?(Array) && value.empty?)
 
           json_rsrc[property.field] = case value
             when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -698,10 +697,6 @@ module DataMapper
             else resource[property.name]
           end
         end
-
-        # puts "JSON RSRC: "
-        # pp json_rsrc
-        # puts "-----"
 
         json_rsrc
       end
