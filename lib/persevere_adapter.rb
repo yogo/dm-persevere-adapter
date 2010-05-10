@@ -12,6 +12,8 @@ require 'types/property'
 require 'types/json_reference'
 require 'types/json_reference_collection'
 
+require 'assocations/many_to_one'
+
 class BigDecimal
   alias to_json_old to_json
   
@@ -676,16 +678,34 @@ module DataMapper
         model = resource.model
         attributes = resource.dirty_attributes
         json_rsrc = Hash.new
-
+        relations = Array.new
+        
         model.relationships.each_value do |relation|
           # This is where we put the references in the current object
           # But what if they don't have id's (ie they haven't been saved yet?)
-          values = relation.get!(resource)
-          #puts "#{resource.model.name} -> related to : #{values.inspect}"
+          value = relation.get!(resource)
+          if ! value.nil?
+            # puts "#{resource.model.name} -> related to : #{value.inspect}"
+            if value.is_a?(Array)
+              json_rsrc[value.model.storage_name] = value.map{ |v| "../#{v.model.storage_name}/#{v.id}" }
+            else
+              json_rsrc[value.model.storage_name] = "../#{value.model.storage_name}/#{value.id}"
+            end
+            relations << value.model.storage_name.to_sym
+          else 
+            puts "#{resource.model.name} -> related to : #{relation.inspect}"
+          end
         end
+        
+        # require 'ruby-debug'
+        # debugger if resource.model == Comment || resource.model == BlogPost        
 
         resource.attributes(:property).each do |property, value|
-          next if value.nil? || (value.is_a?(Array) && value.empty?)
+          if relations.include?(property.name)
+            puts "VALUES: #{value.inspect}"
+          end
+          
+          next if value.nil? || (value.is_a?(Array) && value.empty?) || relations.include?(property.name)
 
           json_rsrc[property.field] = case value
             when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -694,7 +714,10 @@ module DataMapper
             when Float then value.to_f
             when BigDecimal then value.to_f
             when Integer then value.to_i
-            else resource[property.name]
+            else # when String, TrueClass, FalseClass then
+              # require 'ruby-debug'
+              # debugger if resource.model == Comment || resource.model == BlogPost
+              resource[property.name]
           end
         end
 

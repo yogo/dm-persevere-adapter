@@ -44,6 +44,7 @@ describe DataMapper::Adapters::PersevereAdapter do
       
       property :id, Serial
       property :street1, String
+      property :street12, String
       property :b8te, String
       property :name, String
     end
@@ -332,11 +333,11 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
 
     it "should retrieve properties that have a number in the middle" do
-      Mukatron.create(:street1 => "11th", :b8te => 'true', :name => 'Porky')
-      Mukatron.create(:street1 => "12th", :b8te => 'false', :name => 'Porky')
+      Mukatron.create(:street1 => "11th", :b8te => 'true', :street12 => "irj", :name => 'Porky')
+      Mukatron.create(:street1 => "12th", :b8te => 'false', :street12 => "ams", :name => 'Porky')
       # /mukatron/[/id][={'b8te':'b8te'}]
 
-      Mukatron.all(:fields => [:b8te]).length.should == 2
+      Mukatron.all(:fields => [:id,:b8te]).length.should == 2
     end
     
     it "should works with fields and properties that have different names" do
@@ -366,7 +367,7 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :title, String
         property :body, Text
         
-        # property :comment, JsonReference, :reference => ::Comment
+        has n, :comments
      end
 
       class ::Comment
@@ -375,66 +376,53 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :contents, Text
         property :rating, Integer
         
-        property :blog_post, JsonReference, :reference => BlogPost
+        belongs_to :blog_post
       end
-      
-      class ::Author
-        include DataMapper::Resource
-        property :id,     Serial
-        property :name, String
-      end
-
-      class ::Address
-        include DataMapper::Resource
-        property :id,     Serial
-        property :addr,   String
-      end      
     end
     
     before(:each) do
       BlogPost.auto_migrate!
-      Author.auto_migrate!
       Comment.auto_migrate!
-      Address.auto_migrate!
-      BlogPost.send(:property, :comments, DataMapper::Types::JsonReferenceCollection, :reference => :Comment)
-      BlogPost.auto_migrate!
     end
     
-    # it "should create associations between models" do
-    # 
-    #   # Create the instances
-    #   bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
-    #   comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
-    #   comment.blog_post = bpost
-    #   # bpost.comment = comment
-    #   # bpost.save
-    #   comment.save
-    #   
-    #   Comment.first.blog_post.should be_kind_of(BlogPost)
-    #   Comment.first.blog_post.id.should eql(1)
-    #   
-    #   # confirm it actually works with tests
-    #   # bpost.comments.length.should eql 2
-    # end
-    # 
-    # it "should be able to handle collections of relationships" do
-    #   bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
-    # 
-    #   bpost.comments = [Comment.new(:contents => "This is the best", :rating => 5)]
-    #   bpost.save
-    #   BlogPost.first.comments.should be_kind_of(Array)
-    #   BlogPost.first.comments.length.should eql(1)
-    #   BlogPost.first.comments.first.should be_kind_of(Comment)
-    # 
-    #   bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
-    #   bpost.save
-    #   BlogPost.first.comments.length.should eql(2)
-    # end
+    it "should create associations between models" do      
+      # Create the instances
+      bpost = BlogPost.create(:title => "Test Post", :body => "This is the body of the test post.")
+      comment = Comment.new(:contents => "I think the post is great!", :rating => 4)
+      comment.blog_post = bpost
+      bpost.comments << comment
+      bpost.save
+      comment.save
+            
+      # require 'ruby-debug'
+      # debugger
+      
+      Comment.first.blog_post.should be_kind_of(BlogPost)
+      Comment.first.blog_post.id.should eql(1)      
+      BlogPost.first.comments.length.should eql(1)
+#      BlogPost.first.comments.first.should eql(comment)
+    end
+    
+    it "should be able to handle collections of relationships" do
+      bpost = BlogPost.new(:title => "A new post", :body => "This one will have many comments")
+    
+      bpost.comments << Comment.new(:contents => "This is the best", :rating => 5)
+      bpost.save
+      
+      require 'ruby-debug'
+      debugger
+      
+      BlogPost.first.comments.should be_kind_of(Array)
+      BlogPost.first.comments.length.should eql(1)
+      BlogPost.first.comments.first.should be_kind_of(Comment)
+    
+      bpost.comments << Comment.new(:contents => "No, this is the best!", :rating => 3)
+      bpost.save
+      BlogPost.first.comments.length.should eql(2)
+    end
     
     after(:all) do
       BlogPost.auto_migrate_down!
-      Author.auto_migrate_down!
-      Address.auto_migrate_down!
       Comment.auto_migrate_down!
     end
   end
