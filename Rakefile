@@ -22,9 +22,6 @@ rescue LoadError
   puts "Jeweler not available. Install it with: gem install jeweler"
 end
 
-#task :spec => :check_dependencies
-#task :default => :spec
-
 ROOT    = Pathname(__FILE__).dirname.expand_path
 JRUBY   = RUBY_PLATFORM =~ /java/
 WINDOWS = Gem.win_platform?
