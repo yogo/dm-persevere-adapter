@@ -409,8 +409,8 @@ describe DataMapper::Adapters::PersevereAdapter do
       bpost.comments << Comment.new(:contents => "This is the best", :rating => 5)
       bpost.save
       
-      require 'ruby-debug'
-      debugger
+      # require 'ruby-debug'
+      # debugger
       
       BlogPost.first.comments.should be_kind_of(Array)
       BlogPost.first.comments.length.should eql(1)

@@ -5,14 +5,14 @@ require 'dm-types'
 require 'extlib'
 require 'bigdecimal'
 
-require 'model_json_support'
+# Things we add or override in DataMapper
+require 'dm/associations/many_to_one'
+require 'dm/types/property'
+require 'dm/model'
+require 'dm/resource'
+require 'dm/query'
+
 require 'persevere'
-
-require 'types/property'
-require 'types/json_reference'
-require 'types/json_reference_collection'
-
-require 'assocations/many_to_one'
 
 class BigDecimal
   alias to_json_old to_json
@@ -32,13 +32,12 @@ module DataMapper
         
         connect if @persevere.nil?
         resources = Array.new
-        json_query = make_json_query(query)
+        json_query = query.to_json_query
         path = "/#{query.model.storage_name}/#{json_query}"
 
         response = @persevere.retrieve(path)
 
         if response.code == "200"
-          # results = JSON.parse(response.body)
           results = [response.body]
           results.each do |row_of_results|
            row = query.fields.zip([row_of_results].flatten).map do |field, value|
@@ -139,7 +138,7 @@ module DataMapper
             put_schema({'id' => r.child_model.storage_name, 'properties' => {}})
           end
         end
-        schema_hash = model.to_json_schema_compatible_hash()
+        schema_hash = model.to_json_schema_hash()
         
         return true unless put_schema(schema_hash) == false
         false
@@ -160,7 +159,7 @@ module DataMapper
           return properties
         end
         
-        new_schema_hash = model.to_json_schema_compatible_hash()
+        new_schema_hash = model.to_json_schema_hash()
         current_schema_hash = get_schema(new_schema_hash['id'])[0]
         # Diff of what is there and what will be added.
 
@@ -186,7 +185,7 @@ module DataMapper
       # @api semipublic
       def destroy_model_storage(model)
         return true unless storage_exists?(model.storage_name(name))
-        schema_hash = model.to_json_schema_compatible_hash()
+        schema_hash = model.to_json_schema_hash()
         return true unless delete_schema(schema_hash) == false
         false
       end
@@ -255,10 +254,9 @@ module DataMapper
         connect if @persevere.nil?
         created = 0
         resources.each do |resource|
-#          puts "----> Processing a single resource"
           serial = resource.model.serial(self.name)
           path = "/#{resource.model.storage_name}/"
-          payload = make_json_compatible_hash(resource)
+          payload = resource.to_json_hash()
           payload.delete(:id)
           response = @persevere.create(path, payload)
 
@@ -276,16 +274,11 @@ module DataMapper
                 when Time then rsrc_hash[prop.field.to_s] = value.getlocal
               end
             end
-
-#            puts "Result:"
-#            pp rsrc_hash
             
             serial.set!(resource, rsrc_hash["id"]) unless serial.nil?
 
             created += 1
           else
-            puts "Failed to create object with "
-            pp payload
             return false
           end
         end
@@ -325,7 +318,7 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
 
-          payload = make_json_compatible_hash(resource)
+          payload = resource.to_json_hash()
 
           result = @persevere.update(path, payload)
 
@@ -374,11 +367,10 @@ module DataMapper
         connect if @persevere.nil?
 
         resources = Array.new
-        json_query, headers = make_json_query(query)
+        json_query, headers = query.to_json_query
         
         tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
-        # puts path
         response = @persevere.retrieve(path, headers)
 
         if response.code.match(/20?/)
@@ -479,6 +471,8 @@ module DataMapper
         end
       end
 
+      ##
+      # 
       def put_schema(schema_hash, project = nil)
         path = "/Class/"
         if ! project.nil?
@@ -500,6 +494,8 @@ module DataMapper
         end
       end
 
+      ##
+      # 
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
@@ -520,6 +516,8 @@ module DataMapper
         end
       end
 
+      ##
+      # 
       def delete_schema(schema_hash, project = nil)
         if ! project.nil?
           if schema_hash.has_key?("id")
@@ -557,7 +555,6 @@ module DataMapper
       #   the adapter
       #
       # @api semipublic
-
       def initialize(name, uri_or_options)
         super
 
@@ -583,6 +580,10 @@ module DataMapper
         connect
       end
       
+      private
+      
+      ##
+      # 
       def connect
         if ! @prepped
           uri = URI::HTTP.build(@options).to_s
@@ -591,6 +592,8 @@ module DataMapper
         end
       end
 
+      ##
+      # 
       def prep_persvr
         # Because this is an AbstractAdapter and not a
         # DataObjectAdapter, we can't assume there are any schemas
@@ -665,197 +668,6 @@ module DataMapper
             puts "Persevere Create Failed: #{e}, Trying again."
           end
         end
-      end
-      
-      ##
-      # Convert a DataMapper Resource to a JSON.
-      #
-      # @param [Query] query
-      #   The DataMapper query object passed in
-      #
-      # @api semipublic
-      def make_json_compatible_hash(resource)
-        model = resource.model
-        attributes = resource.dirty_attributes
-        json_rsrc = Hash.new
-        relations = Array.new
-        
-        model.relationships.each_value do |relation|
-          # This is where we put the references in the current object
-          # But what if they don't have id's (ie they haven't been saved yet?)
-          value = relation.get!(resource)
-          if ! value.nil?
-            # puts "#{resource.model.name} -> related to : #{value.inspect}"
-            if value.is_a?(Array)
-              json_rsrc[value.model.storage_name] = value.map{ |v| "../#{v.model.storage_name}/#{v.id}" }
-            else
-              json_rsrc[value.model.storage_name] = "../#{value.model.storage_name}/#{value.id}"
-            end
-            relations << value.model.storage_name.to_sym
-          else 
-            puts "#{resource.model.name} -> related to : #{relation.inspect}"
-          end
-        end
-        
-        # require 'ruby-debug'
-        # debugger if resource.model == Comment || resource.model == BlogPost        
-
-        resource.attributes(:property).each do |property, value|
-          if relations.include?(property.name)
-            puts "VALUES: #{value.inspect}"
-          end
-          
-          next if value.nil? || (value.is_a?(Array) && value.empty?) || relations.include?(property.name)
-
-          json_rsrc[property.field] = case value
-            when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
-            when Date then value.to_s
-            when Time then value.strftime("%H:%M:%S")
-            when Float then value.to_f
-            when BigDecimal then value.to_f
-            when Integer then value.to_i
-            else # when String, TrueClass, FalseClass then
-              # require 'ruby-debug'
-              # debugger if resource.model == Comment || resource.model == BlogPost
-              resource[property.name]
-          end
-        end
-
-        json_rsrc
-      end
-
-      ##
-      # Convert a DataMapper Query to a JSON Query.
-      #
-      # @param [Query] query
-      #   The DataMapper query object passed in
-      #
-      # @api semipublic
-      def make_json_query(query)
-        def process_in(value, candidate_set)
-          result_string = Array.new
-          candidate_set.to_a.each do |candidate|
-            result_string << "#{value}=#{candidate}"
-          end
-          if result_string.length > 0
-            "(#{result_string.join("|")})"
-          else
-            "#{value}=''"
-          end
-        end
-
-        def munge_condition(condition)
-          cond = condition.loaded_value
-
-          cond = "\"#{cond}\"" if cond.is_a?(String)
-          cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
-          cond = 'undefined' if cond.nil?
-          return cond
-        end
-
-        def process_condition(condition)
-          case condition
-            # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
-            # without regular expressions, the like operator is inordinately challenging hence we pass it back
-            # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
-            when DataMapper::Query::Conditions::RegexpComparison then []
-            when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.field}='#{condition.loaded_value.gsub('%', '*')}'"
-            when DataMapper::Query::Conditions::AndOperation then 
-              inside = condition.operands.map { |op| process_condition(op) }.flatten
-              inside.empty? ? []  : "(#{inside.join("&")})"
-            when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
-            when DataMapper::Query::Conditions::NotOperation then 
-              inside = process_condition(condition.operand) 
-              inside.empty? ? [] : "!(%s)" % inside
-            when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
-            when DataMapper::Query::Conditions::EqualToComparison then
-              "#{condition.subject.field}=#{munge_condition(condition)}"
-            when DataMapper::Query::Conditions::GreaterThanComparison then
-              "#{condition.subject.field}>#{munge_condition(condition)}"
-            when DataMapper::Query::Conditions::LessThanComparison then
-              "#{condition.subject.field}<#{munge_condition(condition)}"
-            when DataMapper::Query::Conditions::GreaterThanOrEqualToComparison then
-              "#{condition.subject.field}>=#{munge_condition(condition)}"
-            when DataMapper::Query::Conditions::LessThanOrEqualToComparison then
-              "#{condition.subject.field}<=#{munge_condition(condition)}"
-            when DataMapper::Query::Conditions::NullOperation then []
-            when Array then
-               old_statement, bind_values = condition
-               statement = old_statement.dup
-               bind_values.each{ |bind_value| statement.sub!('?', bind_value.to_s) }
-               statement.gsub(' ', '')
-            else condition.to_s.gsub(' ', '')
-          end
-        end
-
-        json_query = ""
-        query_terms = Array.new
-        order_operations = Array.new
-        field_ops = Array.new
-        fields = Array.new
-        headers = Hash.new
-
-        query_terms << process_condition(query.conditions) 
-
-        if query_terms.flatten.length != 0
-          json_query += "[?#{query_terms.join("][?")}]"
-        end
-        
-        query.fields.each do |field|
-          if field.respond_to?(:operator)
-          field_ops << case field.operator
-            when :count then
-              if field.target.is_a?(DataMapper::Property)
-                "[?#{field.target.field}!=undefined].length"
-              else # field.target is all.
-                ".length"
-              end
-            when :min
-              if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
-                "[=#{field.target.field}]"
-              else
-                ".min(?#{field.target.field})"
-              end
-            when :max
-              if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
-                "[=#{field.target.field}]"
-              else
-                ".max(?#{field.target.field})"
-              end
-            when :sum
-              ".sum(?#{field.target.field})"
-            when :avg
-              "[=#{field.target.field}]"
-          end
-        else
-          fields << "'#{field.field}':#{field.field}"
-        end
-        end
-           
-        json_query += field_ops.join("")
-        
-        if query.order && query.order.any?
-          query.order.map do |direction|
-            order_operations << case direction.operator
-              when :asc then "[\/#{direction.target.field}]"
-              when :desc then "[\\#{direction.target.field}]"
-            end
-          end
-        end
-
-        json_query += order_operations.join("")
-
-        json_query += "[={" + fields.join(',') + "}]" unless fields.empty?
-
-        offset = query.offset.to_i
-        limit = query.limit.nil? ? nil : query.limit.to_i + offset - 1
-        
-        if offset != 0 || !limit.nil?
-          headers.merge!({"Range", "items=#{offset}-#{limit}"})
-        end
-#        puts "#{query.inspect}"
-        # puts json_query, headers
-        return json_query, headers
       end
     end # class PersevereAdapter
     const_added(:PersevereAdapter)
