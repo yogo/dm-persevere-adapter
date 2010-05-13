@@ -23,8 +23,6 @@ module DataMapper
           child = relation.child_model
           parent = relation.parent_model
 
-          # require 'ruby-debug'
-          # debugger
           # I have a nagging feeling the "directionality" of relationships and the fact that they kind of 
           # sometimes go both directions, but not always is going to crop up and bite us until we have 
           # very thorough tests in place. It feels like those tests should be in dm-core however. IRJ

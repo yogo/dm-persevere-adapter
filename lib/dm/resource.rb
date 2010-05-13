@@ -1,5 +1,34 @@
 module DataMapper
   module Resource
+    
+    def dirty_self?
+      true
+    end
+    
+    # @api private
+    def _save(safe)
+      _op = self.original_attributes.dup   
+            
+      # Go through and create all the objects in the first pass
+      run_once(true) do
+        save_parents(safe) && save_self(safe) 
+        @_original_attributes = _op.dup
+        save_children(safe)
+      end
+    
+#    debugger
+    
+      # Second pass should create all the relationships
+      run_once(true) do        
+        @_original_attributes = _op.dup
+        save_parents(safe)
+        @_original_attributes = _op.dup
+        save_self(safe)
+        @_original_attributes = _op.dup
+        save_children(safe)
+      end
+    end
+
     ##
     # Convert a DataMapper Resource to a JSON.
     #
@@ -7,36 +36,64 @@ module DataMapper
     #   The DataMapper query object passed in
     #
     # @api semipublic
-    def to_json_hash
+    def to_json_hash(include_relationships=true)
       json_rsrc = Hash.new
-      relations = Array.new
+      relations = self.model.relationships.keys
 
-      model.relationships.each_value do |relation|
-        # This is where we put the references in the current object
-        # But what if they don't have id's (ie they haven't been saved yet?)
-        value = relation.get!(self)
-        if ! value.nil?
-          # puts "#{self.model.name} -> related to : #{value.inspect}"
-          if value.is_a?(Array)
-            json_rsrc[value.model.storage_name] = value.map{ |v| "../#{v.model.storage_name}/#{v.id}" }
-          else
-            json_rsrc[value.model.storage_name] = "../#{value.model.storage_name}/#{value.id}"
+      
+      self.model.relationships.values do |relation|
+        relation.child_key
+      end
+      
+      if include_relationships
+        self.model.relationships.each do |nom, relation|
+
+          value = relation.get!(self)
+          parent = relation.parent_model
+          child = relation.child_model
+
+          unless value.nil?
+            puts "Self: #{self.inspect}"
+            puts "Name: #{nom}"
+            puts "Value: #{value.inspect}"
+            puts "Parent: #{parent.inspect}"
+            puts "Child: #{child.inspect}"
+            puts "Relation: #{relation.inspect}"
+
+            case relation
+            when DataMapper::Associations::ManyToOne::Relationship
+              if self.kind_of?(child)
+                puts "belongs_to"
+                json_rsrc[nom] = { "$ref" => "../#{value.model.storage_name}/#{value.id}" }
+              else
+                puts "m2o: self != child"
+              end
+            when DataMapper::Associations::OneToMany::Relationship
+              if self.kind_of?(child)
+                puts "o2m: self = child"
+              else
+                puts "o2m: self != child"
+                json_rsrc[nom] = value.map{ |v| { "$ref" => "../#{v.model.storage_name}/#{v.id}" } }
+              end
+            when DataMapper::Associations::ManyToMany::Relationship
+              if self.kind_of?(child)
+                puts "m2m: self = child"
+              else
+                puts "m2m: self != child"
+              end
+            when DataMapper::Associations::OneToOne::Relationship
+              if self.kind_of?(child)
+                puts "o2o: self = child"
+              else
+                puts "o2o: self != child"
+              end
+            end
           end
-          relations << value.model.storage_name.to_sym
-        else 
-          # puts "#{self.model.name} -> related to : #{relation.inspect}"
         end
       end
 
-      # require 'ruby-debug'
-      # debugger if self.model == Comment || self.model == BlogPost        
-
       attributes(:property).each do |property, value|
-        if relations.include?(property.name)
-          # puts "VALUES: #{value.inspect}"
-        end
-
-        next if value.nil? || (value.is_a?(Array) && value.empty?) || relations.include?(property.name)
+        next if value.nil? || (value.is_a?(Array) && value.empty?) || relations.include?(property.name.to_s)
 
         json_rsrc[property.field] = case value
         when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -46,8 +103,6 @@ module DataMapper
         when BigDecimal then value.to_f
         when Integer then value.to_i
         else # when String, TrueClass, FalseClass then
-          # require 'ruby-debug'
-          # debugger if self.model == Comment || self.model == BlogPost
           self[property.name]
         end
       end

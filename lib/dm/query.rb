@@ -26,12 +26,24 @@ module DataMapper
       ##
       # 
       # 
+      # [?blog_post=/blog_post/1]
       def munge_condition(condition)
-        cond = condition.loaded_value
-        cond = "\"#{cond}\"" if cond.is_a?(String)
-        cond = "date(%10.f)" % (Time.parse(cond.to_s).to_f * 1000) if cond.is_a?(DateTime)
-        cond = 'undefined' if cond.nil?
-        return cond
+       loaded_value = condition.loaded_value
+       if condition.subject.is_a?(DataMapper::Property)
+          return case loaded_value
+            when is_a?(String)   then "\"#{loaded_value}\""
+            when is_a?(DateTime) then "date(%10.f)" % (Time.parse(loaded_value.to_s).to_f * 1000)
+            when nil?            then "undefined"
+            else                      loaded_value
+          end
+        end
+#        puts "Condition: #{condition.inspect}"
+        if condition.subject.is_a?(DataMapper::Associations::Relationship)
+        #        cond = "/#{condition.model.storage_name}/#{condition.id}" if condition.included_modules.include?(DataMapper::Resource)
+#            puts "Handling a relationship..."
+            return "/#{condition.subject.parent_model.storage_name}/#{loaded_value.id}"
+          end
+        return ""
       end
 
       ##

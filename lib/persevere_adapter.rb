@@ -7,13 +7,17 @@ require 'bigdecimal'
 
 # Things we add or override in DataMapper
 require 'dm/associations/many_to_one'
-require 'dm/types/property'
+require 'dm/associations/one_to_many'
+require 'dm/property'
 require 'dm/model'
 require 'dm/resource'
 require 'dm/query'
 
 require 'persevere'
 
+#
+#  Override BigDecimal to_json because it's ugly and doesn't work for us
+# 
 class BigDecimal
   alias to_json_old to_json
   
@@ -253,10 +257,12 @@ module DataMapper
       def create(resources)
         connect if @persevere.nil?
         created = 0
-        resources.each do |resource|
+        resources.each do |resource|          
           serial = resource.model.serial(self.name)
           path = "/#{resource.model.storage_name}/"
-          payload = resource.to_json_hash()
+          # Invoke to_json_hash with a boolean to indicate this is a create
+          # We might want to make this a post-to_json_hash cleanup instead
+          payload = resource.to_json_hash(false)
           payload.delete(:id)
           response = @persevere.create(path, payload)
 
@@ -319,6 +325,9 @@ module DataMapper
           path = "/#{tblname}/#{resource.key.first}"
 
           payload = resource.to_json_hash()
+          
+          puts "PATH: #{path}"
+          puts "JSON: #{payload.inspect}"
 
           result = @persevere.update(path, payload)
 
