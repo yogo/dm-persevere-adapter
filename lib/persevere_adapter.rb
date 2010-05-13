@@ -509,6 +509,7 @@ module DataMapper
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
         payload['properties'].delete('id') if payload['properties'].has_key?('id')
+        payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
         if project.nil?
           path = "/Class/#{id}"
