@@ -6,8 +6,6 @@ require 'extlib'
 require 'bigdecimal'
 
 # Things we add or override in DataMapper
-require 'dm/associations/many_to_one'
-require 'dm/associations/one_to_many'
 require 'dm/property'
 require 'dm/model'
 require 'dm/resource'
@@ -263,7 +261,7 @@ module DataMapper
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
           payload = resource.to_json_hash(false)
-          payload.delete(:id)
+          scrub_data(payload)
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -323,12 +321,8 @@ module DataMapper
         resources.each do |resource|
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
-
           payload = resource.to_json_hash()
-          
-          puts "PATH: #{path}"
-          puts "JSON: #{payload.inspect}"
-
+          scrub_data(payload)
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -493,7 +487,7 @@ module DataMapper
             puts "You need an id key/value in the hash"
           end
         end
-        schema_hash['properties'].delete('id') if schema_hash['properties'].has_key?('id')
+        scrub_schema(schema_hash['properties'])
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
@@ -508,7 +502,7 @@ module DataMapper
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
-        payload['properties'].delete('id') if payload['properties'].has_key?('id')
+        scrub_schema(payload['properties'])
         payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
         if project.nil?
@@ -602,6 +596,24 @@ module DataMapper
         end
       end
 
+      def scrub_data(json_hash)
+        items = [DataMapper::Model.descendants.map{|c| "#{c.name.downcase}_id"}].flatten
+        items.each do |item|
+          json_hash.delete(item) if json_hash.has_key?(item)
+        end
+        json_hash
+      end
+      
+      ##
+      # 
+      def scrub_schema(json_hash)
+        items = [DataMapper::Model.descendants.map{|c| "#{c.name.downcase}_id"}, 'id'].flatten
+        items.each do |item|
+          json_hash.delete(item) if json_hash.has_key?(item)
+        end
+        json_hash
+      end
+      
       ##
       # 
       def prep_persvr

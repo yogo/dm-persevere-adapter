@@ -27,8 +27,7 @@ module DataMapper
           # sometimes go both directions, but not always is going to crop up and bite us until we have 
           # very thorough tests in place. It feels like those tests should be in dm-core however. IRJ
           case relation
-            when DataMapper::Associations::OneToMany::Relationship || 
-                 DataMapper::Associations::ManyToMany::Relationship
+            when DataMapper::Associations::OneToMany::Relationship, DataMapper::Associations::ManyToMany::Relationship
               schema_hash['properties'][nom] = { "type"     => "array", 
                                                  "optional" => true,  
                                                  "items"    => {"$ref" => "../#{child.storage_name}"},
@@ -36,7 +35,7 @@ module DataMapper
                                                }
                                                
               schema_hash['properties'][nom]["maxItems"] = relation.max if relation.max != Infinity 
-            when DataMapper::Associations::ManyToOne::Relationship || DataMapper::Associations::OneToOne::Relationship
+            when DataMapper::Associations::ManyToOne::Relationship, DataMapper::Associations::OneToOne::Relationship
               if self == relation.child_model
                 ref = "../#{parent.storage_name}"
               else

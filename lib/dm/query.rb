@@ -31,10 +31,10 @@ module DataMapper
        loaded_value = condition.loaded_value
        if condition.subject.is_a?(DataMapper::Property)
           return case loaded_value
-            when is_a?(String)   then "\"#{loaded_value}\""
-            when is_a?(DateTime) then "date(%10.f)" % (Time.parse(loaded_value.to_s).to_f * 1000)
-            when nil?            then "undefined"
-            else                      loaded_value
+            when String   then "\"#{loaded_value}\""
+            when DateTime then "date(%10.f)" % (Time.parse(loaded_value.to_s).to_f * 1000)
+            when nil      then "undefined"
+            else               loaded_value
           end
         end
 #        puts "Condition: #{condition.inspect}"
