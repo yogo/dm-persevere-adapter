@@ -1,6 +1,95 @@
 module DataMapper
   class Query
     ##
+    # 
+    # 
+    def munge_condition(condition)
+      loaded_value = condition.loaded_value
+      return_value = ""
+      
+      # debugger
+        
+      if condition.subject.is_a?(DataMapper::Property)
+        rhs = case loaded_value
+        when String               then "\"#{loaded_value}\""
+        when DateTime             then "date(%10.f)" % (Time.parse(loaded_value.to_s).to_f * 1000)
+        when nil                  then "undefined"
+        else                           loaded_value
+        end
+        return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}#{rhs}"
+      end
+      
+      return_value = _fugly_munger(condition, loaded_value) if condition.subject.is_a?(DataMapper::Associations::Relationship)
+      return_value
+    end
+
+    def _fugly_munger(condition, loaded_value)
+      subject = condition.subject
+      case subject
+        when DataMapper::Associations::ManyToMany::Relationship then
+          return_value = "#{condition.subject.field}.contains(/#{subject.child_model.storage_name}/#{loaded_value.key.first})"            
+        when DataMapper::Associations::OneToMany::Relationship then
+          return_value = "#{condition.subject.field}.contains(/#{subject.parent_model.storage_name}/#{loaded_value.key.first})"
+        when DataMapper::Associations::OneToOne::Relationship then 
+          return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
+        when DataMapper::Associations::ManyToOne::Relationship then
+          if self.model != subject.child_model
+            return_value = "#{condition.subject.field}.contains(/#{subject.parent_model.storage_name}/#{loaded_value.key.first})"
+          else
+           return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
+          end
+      end
+    end
+    
+    ##
+    # 
+    # 
+    def process_condition(condition)
+      case condition
+        # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
+        # without regular expressions, the like operator is inordinately challenging hence we pass it back
+        # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
+        when DataMapper::Query::Conditions::RegexpComparison then []
+        when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.field}='#{condition.loaded_value.gsub('%', '*')}'"
+        when DataMapper::Query::Conditions::AndOperation then 
+          inside = condition.operands.map { |op| process_condition(op) }.flatten
+          inside.empty? ? []  : "(#{inside.join("&")})"
+        when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
+        when DataMapper::Query::Conditions::NotOperation then 
+          inside = process_condition(condition.operand) 
+          inside.empty? ? [] : "!(%s)" % inside
+        when DataMapper::Query::Conditions::InclusionComparison then 
+          result_string = Array.new
+          condition.value.to_a.each do |candidate|
+            if condition.subject.is_a?(DataMapper::Associations::Relationship)
+              # debugger
+              result_string << _fugly_munger(condition, candidate)
+            else
+              result_string << "#{condition.subject.name}=#{candidate}"
+            end
+          end
+          if result_string.length > 0
+            "(#{result_string.join("|")})"
+          else
+            "#{condition.subject.name}=''"
+          end
+        when DataMapper::Query::Conditions::EqualToComparison,
+             DataMapper::Query::Conditions::GreaterThanComparison,
+             DataMapper::Query::Conditions::LessThanComparison, 
+             DataMapper::Query::Conditions::GreaterThanOrEqualToComparison,
+             DataMapper::Query::Conditions::LessThanOrEqualToComparison then
+          munge_condition(condition)
+        when DataMapper::Query::Conditions::NullOperation then []
+        when Array then
+           old_statement, bind_values = condition
+           statement = old_statement.dup
+           bind_values.each{ |bind_value| statement.sub!('?', bind_value.to_s) }
+           statement.gsub(' ', '')
+        else condition.to_s.gsub(' ', '')
+      end
+    end
+    
+    ##
     # Convert a DataMapper Query to a JSON Query.
     #
     # @param [Query] query
@@ -8,81 +97,6 @@ module DataMapper
     #
     # @api semipublic
     def to_json_query
-      ##
-      # 
-      # 
-      def process_in(value, candidate_set)
-        result_string = Array.new
-        candidate_set.to_a.each do |candidate|
-          result_string << "#{value}=#{candidate}"
-        end
-        if result_string.length > 0
-          "(#{result_string.join("|")})"
-        else
-          "#{value}=''"
-        end
-      end
-
-      ##
-      # 
-      # 
-      # [?blog_post=/blog_post/1]
-      def munge_condition(condition)
-       loaded_value = condition.loaded_value
-       if condition.subject.is_a?(DataMapper::Property)
-          return case loaded_value
-            when String   then "\"#{loaded_value}\""
-            when DateTime then "date(%10.f)" % (Time.parse(loaded_value.to_s).to_f * 1000)
-            when nil      then "undefined"
-            else               loaded_value
-          end
-        end
-#        puts "Condition: #{condition.inspect}"
-        if condition.subject.is_a?(DataMapper::Associations::Relationship)
-        #        cond = "/#{condition.model.storage_name}/#{condition.id}" if condition.included_modules.include?(DataMapper::Resource)
-#            puts "Handling a relationship..."
-            return "/#{condition.subject.parent_model.storage_name}/#{loaded_value.id}"
-          end
-        return ""
-      end
-
-      ##
-      # 
-      # 
-      def process_condition(condition)
-        case condition
-          # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
-          # without regular expressions, the like operator is inordinately challenging hence we pass it back
-          # when :regexp then "RegExp(\"#{condition.value.source}\").test(#{condition.subject.name})"
-          when DataMapper::Query::Conditions::RegexpComparison then []
-          when DataMapper::Query::Conditions::LikeComparison then "#{condition.subject.field}='#{condition.loaded_value.gsub('%', '*')}'"
-          when DataMapper::Query::Conditions::AndOperation then 
-            inside = condition.operands.map { |op| process_condition(op) }.flatten
-            inside.empty? ? []  : "(#{inside.join("&")})"
-          when DataMapper::Query::Conditions::OrOperation then "(#{condition.operands.map { |op| process_condition(op) }.join("|")})"
-          when DataMapper::Query::Conditions::NotOperation then 
-            inside = process_condition(condition.operand) 
-            inside.empty? ? [] : "!(%s)" % inside
-          when DataMapper::Query::Conditions::InclusionComparison then process_in(condition.subject.name, condition.value)
-          when DataMapper::Query::Conditions::EqualToComparison then
-            "#{condition.subject.field}=#{munge_condition(condition)}"
-          when DataMapper::Query::Conditions::GreaterThanComparison then
-            "#{condition.subject.field}>#{munge_condition(condition)}"
-          when DataMapper::Query::Conditions::LessThanComparison then
-            "#{condition.subject.field}<#{munge_condition(condition)}"
-          when DataMapper::Query::Conditions::GreaterThanOrEqualToComparison then
-            "#{condition.subject.field}>=#{munge_condition(condition)}"
-          when DataMapper::Query::Conditions::LessThanOrEqualToComparison then
-            "#{condition.subject.field}<=#{munge_condition(condition)}"
-          when DataMapper::Query::Conditions::NullOperation then []
-          when Array then
-             old_statement, bind_values = condition
-             statement = old_statement.dup
-             bind_values.each{ |bind_value| statement.sub!('?', bind_value.to_s) }
-             statement.gsub(' ', '')
-          else condition.to_s.gsub(' ', '')
-        end
-      end
 
       # Body of main function
       json_query = ""

@@ -6,10 +6,13 @@ require 'extlib'
 require 'bigdecimal'
 
 # Things we add or override in DataMapper
-require 'dm/property'
+require 'dm/associations/many_to_many'
+#require 'dm/relationship'
+# require 'dm/collection'
 require 'dm/model'
-require 'dm/resource'
+require 'dm/property'
 require 'dm/query'
+require 'dm/resource'
 
 require 'persevere'
 
@@ -36,7 +39,7 @@ module DataMapper
         resources = Array.new
         json_query = query.to_json_query
         path = "/#{query.model.storage_name}/#{json_query}"
-
+      
         response = @persevere.retrieve(path)
 
         if response.code == "200"
@@ -130,7 +133,6 @@ module DataMapper
         name       = self.name
         properties = model.properties_with_subclasses(name)
         
-        
         return false if storage_exists?(model.storage_name(name))
         return false if properties.empty?
 
@@ -156,14 +158,16 @@ module DataMapper
       def upgrade_model_storage(model)
         name       = self.name
         properties = model.properties_with_subclasses(name)
-
+        
+#        puts "Upgrading #{model.name}"
+        
         if success = create_model_storage(model)
           return properties
         end
         
         new_schema_hash = model.to_json_schema_hash()
         current_schema_hash = get_schema(new_schema_hash['id'])[0]
-        # Diff of what is there and what will be added.
+        # TODO: Diff of what is there and what will be added.
 
         new_properties = properties.map do |property|
           prop_name = property.name.to_s
@@ -216,20 +220,20 @@ module DataMapper
           scale     = Property::DEFAULT_SCALE_BIGDECIMAL
 
           @type_map ||= {
-            Types::Serial => { :primitive => 'integer' },
-            Types::Boolean => { :primitive => 'boolean' },
-            Integer     => { :primitive => 'integer'},
-            String      => { :primitive => 'string'},
-            Class       => { :primitive => 'string'},
-            BigDecimal  => { :primitive => 'number'},
-            Float       => { :primitive => 'number'},
-            DateTime    => { :primitive => 'string', :format => 'date-time'},
-            Date        => { :primitive => 'string', :format => 'date'},
-            Time        => { :primitive => 'string', :format => 'time'},
-            TrueClass   => { :primitive => 'boolean'},
-            Types::Text => { :primitive => 'string'},
+            Types::Serial             => { :primitive => 'integer' },
+            Types::Boolean            => { :primitive => 'boolean' },
+            Integer                   => { :primitive => 'integer'},
+            String                    => { :primitive => 'string'},
+            Class                     => { :primitive => 'string'},
+            BigDecimal                => { :primitive => 'number'},
+            Float                     => { :primitive => 'number'},
+            DateTime                  => { :primitive => 'string', :format => 'date-time'},
+            Date                      => { :primitive => 'string', :format => 'date'},
+            Time                      => { :primitive => 'string', :format => 'time'},
+            TrueClass                 => { :primitive => 'boolean'},
+            Types::Text               => { :primitive => 'string'},
             DataMapper::Types::Object => { :primitive => 'string'},
-            DataMapper::Types::URI   => { :primitive => 'string', :format => 'uri'}
+            DataMapper::Types::URI    => { :primitive => 'string', :format => 'uri'}
           }.freeze
         end
       end
@@ -261,7 +265,7 @@ module DataMapper
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
           payload = resource.to_json_hash(false)
-          scrub_data(payload)
+#          scrub_data(payload)
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -311,7 +315,7 @@ module DataMapper
       def update(attributes, query)
         connect if @persevere.nil?
         updated = 0
-
+        
         if ! query.is_a?(DataMapper::Query)
           resources = [query].flatten
         else
@@ -322,7 +326,9 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash()
-          scrub_data(payload)
+#          scrub_data(payload)
+#          puts "Updating: #{path}"
+#          puts "with: #{payload.inspect}"
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -370,10 +376,12 @@ module DataMapper
         connect if @persevere.nil?
 
         resources = Array.new
+        tblname = query.model.storage_name
+        
         json_query, headers = query.to_json_query
         
-        tblname = query.model.storage_name
         path = "/#{tblname}/#{json_query}"
+#        puts "--> PATH/QUERY: #{path}"
         response = @persevere.retrieve(path, headers)
 
         if response.code.match(/20?/)
@@ -399,12 +407,15 @@ module DataMapper
         # We could almost elimate this if regexp was working in persevere.
 
         # This won't work if the RegExp is nested more then 1 layer deep.
-        if query.conditions.class == DataMapper::Query::Conditions::AndOperation
-          regexp_conds = query.conditions.operands.select{ |obj| obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
-             (obj.is_a?(DataMapper::Query::Conditions::NotOperation) && obj.operand.is_a?(DataMapper::Query::Conditions::RegexpComparison))}
-          regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
-         
-        end
+        # if query.conditions.class == DataMapper::Query::Conditions::AndOperation
+        #   regexp_conds = query.conditions.operands.select do |obj| 
+        #     obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
+        #     ( obj.is_a?(DataMapper::Query::Conditions::NotOperation) && obj.operand.is_a?(DataMapper::Query::Conditions::RegexpComparison) )
+        #   end
+        #   regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
+        #  
+        # end
+
         # query.match_records(resources)
         resources
       end
@@ -489,6 +500,9 @@ module DataMapper
         end
         scrub_schema(schema_hash['properties'])
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
+        
+#        puts "Creating #{schema_hash['id']}"
+#        debugger if schema_hash['id'] == "bozon_nugatons"
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -502,7 +516,7 @@ module DataMapper
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
-        scrub_schema(payload['properties'])
+#        scrub_schema(payload['properties'])
         payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
         if project.nil?
@@ -577,7 +591,6 @@ module DataMapper
 
         @resource_naming_convention = NamingConventions::Resource::Underscored
         @identity_maps = {}
-        @classes = []
         @persevere = nil
         @prepped = false
 
@@ -598,9 +611,8 @@ module DataMapper
 
       def scrub_data(json_hash)
         items = [DataMapper::Model.descendants.map{|c| "#{c.name.downcase}_id"}].flatten
-        items.each do |item|
-          json_hash.delete(item) if json_hash.has_key?(item)
-        end
+        items.each { |item| json_hash.delete(item) if json_hash.has_key?(item) }
+        json_hash.reject! { |k,v| v.nil? }
         json_hash
       end
       
@@ -608,35 +620,36 @@ module DataMapper
       # 
       def scrub_schema(json_hash)
         items = [DataMapper::Model.descendants.map{|c| "#{c.name.downcase}_id"}, 'id'].flatten
-        items.each do |item|
-          json_hash.delete(item) if json_hash.has_key?(item)
-        end
+        items.each { |item| json_hash.delete(item) if json_hash.has_key?(item) }
         json_hash
       end
-      
-      ##
-      # 
-      def prep_persvr
+
+      def get_classes
         # Because this is an AbstractAdapter and not a
         # DataObjectAdapter, we can't assume there are any schemas
         # present, so we retrieve the ones that exist and keep them up
         # to date
+        classes = Array.new
         result = @persevere.retrieve('/Class[=id]')
         if result.code == "200"
           hresult = JSON.parse(result.body)
           hresult.each do |cname|
             junk,name = cname.split("/")
-            @classes << name
+            classes << name
           end
-          @prepped = true
         else
           puts "Error retrieving existing tables: ", result
         end
-        
+        classes
+      end
+      
+      ##
+      # 
+      def prep_persvr
         #
         # If the user specified a versioned datastore load the versioning REST code
         # 
-        if ! @classes.include?("Versioned") && @options[:versioned]
+        unless get_classes.include?("Versioned") && @options[:versioned]
           versioned_class = <<-EOF
           {
               id: "Versioned",

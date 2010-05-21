@@ -20,12 +20,10 @@ module DataMapper
         
         # Handle relationships
         relationships.each_pair do |nom,relation|
+          next if self.name.downcase == nom
           child = relation.child_model
           parent = relation.parent_model
 
-          # I have a nagging feeling the "directionality" of relationships and the fact that they kind of 
-          # sometimes go both directions, but not always is going to crop up and bite us until we have 
-          # very thorough tests in place. It feels like those tests should be in dm-core however. IRJ
           case relation
             when DataMapper::Associations::OneToMany::Relationship, DataMapper::Associations::ManyToMany::Relationship
               schema_hash['properties'][nom] = { "type"     => "array", 
