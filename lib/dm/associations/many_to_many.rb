@@ -144,9 +144,11 @@ module DataMapper
         end
 
         def _save(safe)
-          if @removed.any?
-            @removed.all.send(safe ? :destroy : :destroy!)
-          end
+          # if @removed.any?
+          #   puts "REMOVED: #{@removed}"
+          #   debugger
+          #   @removed.all.send(safe ? :destroy : :destroy!)
+          # end
           loaded_entries = self.loaded_entries
           @removed.clear
           loaded_entries.all? { |resource| resource.__send__(safe ? :save : :save!) }
@@ -170,7 +172,7 @@ module DataMapper
             @identity_map[resource.key] = resource
             @removed.delete(resource)
           else
-            set_default_attributes(resource)
+            resource.save
           end
           resource
         end

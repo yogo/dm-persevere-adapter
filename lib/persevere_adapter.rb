@@ -405,14 +405,14 @@ module DataMapper
         # We could almost elimate this if regexp was working in persevere.
 
         # This won't work if the RegExp is nested more then 1 layer deep.
-        # if query.conditions.class == DataMapper::Query::Conditions::AndOperation
-        #   regexp_conds = query.conditions.operands.select do |obj| 
-        #     obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
-        #     ( obj.is_a?(DataMapper::Query::Conditions::NotOperation) && obj.operand.is_a?(DataMapper::Query::Conditions::RegexpComparison) )
-        #   end
-        #   regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
-        #  
-        # end
+        if query.conditions.class == DataMapper::Query::Conditions::AndOperation
+          regexp_conds = query.conditions.operands.select do |obj| 
+            obj.is_a?(DataMapper::Query::Conditions::RegexpComparison) || 
+            ( obj.is_a?(DataMapper::Query::Conditions::NotOperation) && obj.operand.is_a?(DataMapper::Query::Conditions::RegexpComparison) )
+          end
+          regexp_conds.each{|cond| resources = resources.select{|resource| cond.matches?(resource)} }
+         
+        end
 
         # query.match_records(resources)
         resources
