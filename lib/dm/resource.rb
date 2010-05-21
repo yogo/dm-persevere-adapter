@@ -2,10 +2,10 @@ module DataMapper
   module Resource
 
     def get_new_objects
-      new_parents = parent_relationships.select{|p| p.new? }
+      new_parents = parent_resources.select{|p| p.new? }
       new_children = child_collections.collect{ |collection| collection.select{|c| c.new? }}.flatten
-      new_children_of_new_parents = new_parents.map{ |np| np.child_collections.collect{ |n| select{ |p| p.new? }}}.flatten
-      new_parents_of_new_children = new_children.map{ |nc| nc.parent_relationships.select{|p| p.new? }}.flatten
+      new_children_of_new_parents = new_parents.map{ |np| np.__send__(:child_collections).collect{ |n| select{ |p| p.new? }}}.flatten
+      new_parents_of_new_children = new_children.map{ |nc| nc.__send__(:parent_resources).select{|p| p.new? }}.flatten
       [ new_parents, new_children, new_children_of_new_parents, new_parents_of_new_children, self.new? ? self : [] ].flatten.uniq
     end
 
@@ -14,7 +14,7 @@ module DataMapper
       _create
       @_original_attributes = op.dup
     end
-
+    
     alias _old_update _update
     def _update
       if repository.adapter.is_a?(DataMapper::Adapters::PersevereAdapter)
@@ -34,15 +34,14 @@ module DataMapper
       end
     end
 
-    # alias _old_save _save
-    # def _save(safe)
-    #   objects = get_new_objects
-    #   puts "Objects: #{objects.map {|o| o.class } }" unless objects.empty?
-    #   objects.each do |obj|
-    #     obj.__send__(:save_self, safe)
-    #   end
-    #   _old_save(safe)
-    # end
+    alias _old_save _save
+     def _save(safe)
+       objects = get_new_objects
+       objects.each do |obj|
+         obj.__send__(:save_self, safe)
+       end
+       _old_save(safe)
+     end
 
     ##
     # Convert a DataMapper Resource to a JSON.

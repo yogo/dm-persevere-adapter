@@ -7,8 +7,6 @@ require 'bigdecimal'
 
 # Things we add or override in DataMapper
 require 'dm/associations/many_to_many'
-#require 'dm/relationship'
-# require 'dm/collection'
 require 'dm/model'
 require 'dm/property'
 require 'dm/query'

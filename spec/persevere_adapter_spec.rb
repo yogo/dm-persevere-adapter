@@ -374,65 +374,67 @@ describe DataMapper::Adapters::PersevereAdapter do
         Dataino.auto_migrate!
       end
 
-      # it "should create one to one (has 1) associations between models" do    
-      #   # Add the relationships
-      #   Bozon.has(1, :nugaton)
-      #   Nugaton.belongs_to(:bozon)
-      # 
-      #   # Push them to the repository
-      #   Bozon.auto_upgrade!
-      #   Nugaton.auto_upgrade!
-      #         
-      #   # Create a couple to make sure they are working
-      #   bozon = Bozon.create(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-      #   nugat = Nugaton.create(:name => "numero uno")
-      # 
-      #   bozon.nugaton = nugat
-      #   bozon.save
-      #         
-      #   Bozon.first.nugaton.id.should eql nugat.id
-      #   Nugaton.first.bozon.id.should eql bozon.id
-      # end
-      # 
-      # 
-      # it "should create one to many (has n) associations between models" do
-      #   Bozon.has(Infinity, :nugatons)
-      #   Nugaton.belongs_to(:bozon)
-      #   Bozon.auto_upgrade!
-      # 
-      #   bozon = Bozon.create(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-      #   nugat1 = Nugaton.create(:name => "numero uno")
-      #   nugat2 = Nugaton.create(:name => "numero duo")
-      # 
-      #   bozon.nugatons.push(nugat1, nugat2)
-      #   bozon.save
-      # 
-      #   
-      #   Bozon.first.nugatons.length.should eql 2
-      # end
-      # 
-      # it "should create many to one (belongs_to) associations between models" do
-      #   # Add the relationships
-      #   Nugaton.belongs_to(:bozon)
-      # 
-      #   # Push them to the repository
-      #   Bozon.auto_upgrade!
-      #   Nugaton.auto_upgrade!
-      # 
-      #   # Create a couple to make sure they are working
-      #   bozon = Bozon.create(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-      #   nugat1 = Nugaton.create(:name => "numero uno")
-      #   nugat2 = Nugaton.create(:name => "numero duo")
-      # 
-      #   nugat1.bozon = bozon
-      #   nugat1.save
-      #   nugat2.bozon = bozon
-      #   nugat2.save
-      # 
-      #   
-      #   Nugaton.first.bozon.should be_kind_of(Bozon)
-      #   Nugaton[1].bozon.should be_kind_of(Bozon)
-      # end
+      it "should create one to one (has 1) associations between models" do    
+        # Add the relationships
+        Bozon.has(1, :nugaton)
+        Nugaton.belongs_to(:bozon)
+      
+        # Push them to the repository
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+              
+        # Create a couple to make sure they are working
+        bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+        nugat = Nugaton.new(:name => "numero uno")
+      
+        debugger
+        
+        bozon.nugaton = nugat
+        bozon.save
+              
+        Bozon.first.nugaton.id.should eql nugat.id
+        Nugaton.first.bozon.id.should eql bozon.id
+      end
+      
+      
+      it "should create one to many (has n) associations between models" do
+        Bozon.has(Infinity, :nugatons)
+        Nugaton.belongs_to(:bozon)
+        Bozon.auto_upgrade!
+      
+        bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+        nugat1 = Nugaton.new(:name => "numero uno")
+        nugat2 = Nugaton.new(:name => "numero duo")
+      
+        bozon.nugatons.push(nugat1, nugat2)
+        bozon.save
+      
+        
+        Bozon.first.nugatons.length.should eql 2
+      end
+      
+      it "should create many to one (belongs_to) associations between models" do
+        # Add the relationships
+        Nugaton.belongs_to(:bozon)
+      
+        # Push them to the repository
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+      
+        # Create a couple to make sure they are working
+        bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+        nugat1 = Nugaton.new(:name => "numero uno")
+        nugat2 = Nugaton.new(:name => "numero duo")
+      
+        nugat1.bozon = bozon
+        nugat1.save
+        nugat2.bozon = bozon
+        nugat2.save
+      
+        
+        Nugaton.first.bozon.should be_kind_of(Bozon)
+        Nugaton[1].bozon.should be_kind_of(Bozon)
+      end
 
       it "should create many to many (has n and inverse has n) associations between models" do
         class ::Bozon
@@ -457,11 +459,11 @@ describe DataMapper::Adapters::PersevereAdapter do
                 
         DataMapper.auto_migrate!
         
-        bozon1 = Bozon.create(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-        bozon2 = Bozon.create(:author => 'Ivan', :created_at => DateTime.now - 5, :title => '5 days ago')
+        bozon1 = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+        bozon2 = Bozon.new(:author => 'Ivan', :created_at => DateTime.now - 5, :title => '5 days ago')
 
-        nugat1 = Nugaton.create(:name => "numero uno")
-        nugat2 = Nugaton.create(:name => "numero duo")
+        nugat1 = Nugaton.new(:name => "numero uno")
+        nugat2 = Nugaton.new(:name => "numero duo")
         
         bozon1.nugatons << nugat1
         bozon1.nugatons << nugat2
