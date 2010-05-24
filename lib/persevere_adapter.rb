@@ -8,6 +8,7 @@ require 'digest/md5'
 
 # Things we add or override in DataMapper
 require 'dm/associations/many_to_many'
+require 'dm/associations/many_to_one'
 require 'dm/model'
 require 'dm/property'
 require 'dm/query'
@@ -258,6 +259,9 @@ module DataMapper
       def create(resources)
         connect if @persevere.nil?
         created = 0
+        
+        check_schemas
+        
         resources.each do |resource|          
           serial = resource.model.serial(self.name)
           path = "/#{resource.model.storage_name}/"
@@ -314,6 +318,8 @@ module DataMapper
       def update(attributes, query)
         connect if @persevere.nil?
         updated = 0
+        
+        check_schemas
         
         if ! query.is_a?(DataMapper::Query)
           resources = [query].flatten
@@ -372,6 +378,8 @@ module DataMapper
       def read_many(query)
         connect if @persevere.nil?
 
+#        check_schemas
+        
         resources = Array.new
         tblname = query.model.storage_name
         
@@ -388,6 +396,14 @@ module DataMapper
             # Typecast attributes, DM expects them properly cast
             query.fields.each do |prop|
               value = rsrc_hash[prop.field.to_s]
+              # Dereference references
+              if value.is_a?(Hash)
+                debugger
+                value = value[prop.field.to_s]["$ref"].split("/")[-1]
+              elsif value.is_a?(Array)
+                debugger
+                value = value[prop.field.to_s].map{ |v| v["$ref"].split("/")[-1] }
+              end
               if prop.field == 'id'
                 rsrc_hash[prop.field.to_s]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
               else
@@ -434,6 +450,8 @@ module DataMapper
         connect if @persevere.nil?
 
         deleted = 0
+        
+#        check_schemas
 
         if ! query.is_a?(DataMapper::Query)
           resources = [query].flatten
@@ -462,6 +480,9 @@ module DataMapper
       def get_schema(name = nil, project = nil)
         path = nil
         single = false
+
+#        check_schemas
+        
         if name.nil? & project.nil?
           path = "/Class/"
         elsif project.nil?
@@ -477,6 +498,8 @@ module DataMapper
           schemas.each do |schema|
             schema['properties']['id'] = { 'type' => "serial", 'index' => true }
           end
+#          save_schemas
+
           return name.nil? ? schemas : schemas[0..0]
         else
           return false
@@ -496,11 +519,16 @@ module DataMapper
             DataMapper.logger.error("You need an id key/value in the hash")
           end
         end
+        
+#        check_schemas
+        
         scrub_schema(schema_hash['properties'])
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
+#          save_schemas
+
           return JSON.parse(result.body)
         else
           return false
@@ -515,6 +543,8 @@ module DataMapper
         scrub_schema(payload['properties'])
         payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
+#        check_schemas
+
         if project.nil?
           path = "/Class/#{id}"
         else
@@ -524,6 +554,7 @@ module DataMapper
         result = @persevere.update(path, payload)
 
         if result.code == '200'
+#          save_schemas
           return result.body
         else
           return false
@@ -542,10 +573,14 @@ module DataMapper
             DataMapper.logger.error("You need an id key/value in the hash")
           end
         end
+
+#        check_schemas
+
         path = "/Class/#{schema_hash['id']}"
         result = @persevere.delete(path)
 
         if result.code == "204"
+#          save_schemas
           return true
         else
           return false
@@ -590,6 +625,7 @@ module DataMapper
         @persevere = nil
         @prepped = false
         @schema_backups = Array.new
+        @last_backup = nil
         
         connect
       end
@@ -622,26 +658,27 @@ module DataMapper
       end
 
       def check_schemas
-        schemas = JSON.parse(@persevere.retrieve("/Class"))
+        schemas = @persevere.retrieve("/Class").body
         md5 = Digest::MD5.hexdigest(schemas)
 
-        if @last_backup[:hash] == md5
-          DataMapper.logger.info("Schemas look good")
-        else
-          DataMapper.logger.info("Schemas changed, do you know why?")
-          @schema_backups.each do |sb| 
-            if sb[:hash] == md5 
-              DataMapper.logger.info("Schemas reverted to #{sb.inspect}")
+        if ! @last_backup.nil?
+          if @last_backup[:hash] != md5
+            DataMapper.logger.info("Schemas changed, do you know why? (#{md5} :: #{@last_backup[:hash]})")
+            @schema_backups.each do |sb| 
+              if sb[:hash] == md5 
+                DataMapper.logger.info("Schemas reverted to #{sb.inspect}")
+              end
             end
           end
         end
       end
       
       def save_schemas
-        schemas = JSON.parse(@persevere.retrieve("/Class"))
+        schemas = @persevere.retrieve("/Class").body
         md5 = Digest::MD5.hexdigest(schemas)
         @last_backup = { :hash => md5, :schemas => schemas, :timestamp => Time.now }
         @schema_backups << @last_backup
+        # Dump to filesystem
       end
       
       def get_classes
