@@ -142,13 +142,11 @@ module DataMapper
             r.send(relationship.inverse.name).my_add(source)
           end
         end
+        
+        # concat, unshift, insert, pop, shift, delete, delete_at, delete_if, reject!, replace, clear
+        # slice!, splice, collect!
 
         def _save(safe)
-          # if @removed.any?
-          #   puts "REMOVED: #{@removed}"
-          #   debugger
-          #   @removed.all.send(safe ? :destroy : :destroy!)
-          # end
           loaded_entries = self.loaded_entries
           @removed.clear
           loaded_entries.all? { |resource| resource.__send__(safe ? :save : :save!) }

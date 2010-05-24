@@ -10,7 +10,7 @@ require agg_dir / 'spec' / 'public' / 'shared' / 'aggregate_shared_spec'
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
 require 'ruby-debug'
-Debugger.start#(:post_mortem => true)
+Debugger.start
 
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
@@ -457,5 +457,30 @@ describe DataMapper::Adapters::PersevereAdapter do
         Bozon.first.nugatons.length.should eql 2
         Nugaton.first.bozons.length.should eql 2
       end
+      
+      # it "should update many to many associations when resources are deleted" do
+      #   Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+      #   Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+      #   Bozon.auto_upgrade!
+      #   Nugaton.auto_upgrade!        
+      # 
+      #   bozon1 = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+      #   bozon2 = Bozon.new(:author => 'Ivan', :created_at => DateTime.now - 5, :title => '5 days ago')
+      # 
+      #   nugat1 = Nugaton.new(:name => "numero uno")
+      #   nugat2 = Nugaton.new(:name => "numero duo")
+      #   
+      #   bozon1.nugatons << nugat1
+      #   bozon1.nugatons << nugat2
+      #   bozon1.save
+      # 
+      #   bozon2.nugatons.push(nugat1,nugat2)
+      #   bozon2.save
+      #   
+      #   debugger
+      #   
+      #   puts "HI"
+      #           
+      # end
     end
   end

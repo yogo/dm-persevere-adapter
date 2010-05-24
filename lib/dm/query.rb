@@ -1,14 +1,10 @@
 module DataMapper
   class Query
     ##
-    # 
-    # 
     def munge_condition(condition)
       loaded_value = condition.loaded_value
       return_value = ""
-      
-      # debugger
-        
+              
       if condition.subject.is_a?(DataMapper::Property)
         rhs = case loaded_value
         when String               then "\"#{loaded_value}\""
@@ -42,8 +38,6 @@ module DataMapper
     end
     
     ##
-    # 
-    # 
     def process_condition(condition)
       case condition
         # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering

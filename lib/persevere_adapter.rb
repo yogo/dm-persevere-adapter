@@ -4,6 +4,7 @@ require 'dm-aggregates'
 require 'dm-types'
 require 'extlib'
 require 'bigdecimal'
+require 'digest/md5'
 
 # Things we add or override in DataMapper
 require 'dm/associations/many_to_many'
@@ -157,7 +158,7 @@ module DataMapper
         name       = self.name
         properties = model.properties_with_subclasses(name)
         
-#        puts "Upgrading #{model.name}"
+        DataMapper.logger.info("Upgrading #{model.name}")
         
         if success = create_model_storage(model)
           return properties
@@ -263,7 +264,7 @@ module DataMapper
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
           payload = resource.to_json_hash(false)
-#          scrub_data(payload)
+          scrub_data(payload)
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -324,9 +325,7 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash()
-#          scrub_data(payload)
-#          puts "Updating: #{path}"
-#          puts "with: #{payload.inspect}"
+          scrub_data(payload)
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -379,7 +378,8 @@ module DataMapper
         json_query, headers = query.to_json_query
         
         path = "/#{tblname}/#{json_query}"
-#        puts "--> PATH/QUERY: #{path}"
+        DataMapper.logger.info("--> PATH/QUERY: #{path}")
+        
         response = @persevere.retrieve(path, headers)
 
         if response.code.match(/20?/)
@@ -493,14 +493,12 @@ module DataMapper
               schema_hash['id'] = "#{project}/#{schema_hash['id']}"
             end
           else
-            puts "You need an id key/value in the hash"
+            DataMapper.logger.error("You need an id key/value in the hash")
           end
         end
         scrub_schema(schema_hash['properties'])
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         
-#        puts "Creating #{schema_hash['id']}"
-#        debugger if schema_hash['id'] == "bozon_nugatons"
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
           return JSON.parse(result.body)
@@ -514,7 +512,7 @@ module DataMapper
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
-#        scrub_schema(payload['properties'])
+        scrub_schema(payload['properties'])
         payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
         if project.nil?
@@ -541,7 +539,7 @@ module DataMapper
               schema_hash['id'] = "#{project}/#{schema_hash['id']}"
             end
           else
-            puts "You need an id key/value in the hash"
+            DataMapper.logger.error("You need an id key/value in the hash")
           end
         end
         path = "/Class/#{schema_hash['id']}"
@@ -591,7 +589,8 @@ module DataMapper
         @identity_maps = {}
         @persevere = nil
         @prepped = false
-
+        @schema_backups = Array.new
+        
         connect
       end
       
@@ -622,6 +621,29 @@ module DataMapper
         json_hash
       end
 
+      def check_schemas
+        schemas = JSON.parse(@persevere.retrieve("/Class"))
+        md5 = Digest::MD5.hexdigest(schemas)
+
+        if @last_backup[:hash] == md5
+          DataMapper.logger.info("Schemas look good")
+        else
+          DataMapper.logger.info("Schemas changed, do you know why?")
+          @schema_backups.each do |sb| 
+            if sb[:hash] == md5 
+              DataMapper.logger.info("Schemas reverted to #{sb.inspect}")
+            end
+          end
+        end
+      end
+      
+      def save_schemas
+        schemas = JSON.parse(@persevere.retrieve("/Class"))
+        md5 = Digest::MD5.hexdigest(schemas)
+        @last_backup = { :hash => md5, :schemas => schemas, :timestamp => Time.now }
+        @schema_backups << @last_backup
+      end
+      
       def get_classes
         # Because this is an AbstractAdapter and not a
         # DataObjectAdapter, we can't assume there are any schemas
@@ -636,7 +658,7 @@ module DataMapper
             classes << name
           end
         else
-          puts "Error retrieving existing tables: ", result
+          DataMapper.logger.error("Error retrieving existing tables: #{result}")
         end
         classes
       end
@@ -698,7 +720,7 @@ module DataMapper
             response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), versioned_class, { 'Content-Type' => 'application/javascript' } )
           rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
                 Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-            puts "Persevere Create Failed: #{e}, Trying again."
+            DataMapper.logger.error("Persevere Create Failed: #{e}, Trying again.")
           end
         end
       end
