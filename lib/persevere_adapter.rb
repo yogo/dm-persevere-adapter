@@ -159,7 +159,7 @@ module DataMapper
         name       = self.name
         properties = model.properties_with_subclasses(name)
         
-        DataMapper.logger.info("Upgrading #{model.name}")
+        DataMapper.logger.debug("Upgrading #{model.name}")
         
         if success = create_model_storage(model)
           return properties
@@ -386,10 +386,10 @@ module DataMapper
         json_query, headers = query.to_json_query
         
         path = "/#{tblname}/#{json_query}"
-        DataMapper.logger.info("--> PATH/QUERY: #{path}")
+        DataMapper.logger.debug("--> PATH/QUERY: #{path}")
         
         response = @persevere.retrieve(path, headers)
-
+        
         if response.code.match(/20?/)
           results = JSON.parse(response.body)
           results.each do |rsrc_hash|
@@ -398,11 +398,10 @@ module DataMapper
               value = rsrc_hash[prop.field.to_s]
               # Dereference references
               if value.is_a?(Hash)
-                debugger
-                value = value[prop.field.to_s]["$ref"].split("/")[-1]
+                value = value["$ref"].split("/")[-1]
               elsif value.is_a?(Array)
                 debugger
-                value = value[prop.field.to_s].map{ |v| v["$ref"].split("/")[-1] }
+                value = value.map{ |v| v["$ref"].split("/")[-1] }
               end
               if prop.field == 'id'
                 rsrc_hash[prop.field.to_s]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
@@ -663,10 +662,10 @@ module DataMapper
 
         if ! @last_backup.nil?
           if @last_backup[:hash] != md5
-            DataMapper.logger.info("Schemas changed, do you know why? (#{md5} :: #{@last_backup[:hash]})")
+            DataMapper.logger.debug("Schemas changed, do you know why? (#{md5} :: #{@last_backup[:hash]})")
             @schema_backups.each do |sb| 
               if sb[:hash] == md5 
-                DataMapper.logger.info("Schemas reverted to #{sb.inspect}")
+                DataMapper.logger.debug("Schemas reverted to #{sb.inspect}")
               end
             end
           end
