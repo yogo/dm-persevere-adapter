@@ -129,21 +129,101 @@ module DataMapper
         remove_method :_save
         remove_method :_create
 
-        alias :my_add :"<<"
-        def <<(resource)
-          my_add(resource)
-          resource.send(relationship.inverse.name).my_add(source)
-        end
-
-        alias :my_push :push
-        def push(*resources)
+        def inverse_add(*resources)
           resources.each do |r|
-            my_add(r)
-            r.send(relationship.inverse.name).my_add(source)
+            r.send(relationship.inverse.name)._original_add(source)
           end
         end
+
+        alias :_original_add :"<<"
+        def <<(resource)
+          resource.send(relationship.inverse.name)._original_add(source)
+          _original_add(resource)
+        end
+
+        alias :_original_concat :concat
+        def concat(resources)
+          inverse_add(*resources)
+          _original_concat(resources)
+        end
         
-        # concat, unshift, insert, pop, shift, delete, delete_at, delete_if, reject!, replace, clear
+        alias :_original_push :push
+        def push(*resources)
+          inverse_add(*resources)
+          _original_push(*resources)
+        end
+        
+        
+        alias :_original_unshift :unshift
+        def unshift(*resources)
+          inverse_add(*resources)
+          _original_unshift(*resources)
+        end
+        
+        alias :_original_insert :insert
+        def insert(offset, *resources)
+          inverse_add(*resources)
+          _original_insert(offset, *resources)
+        end
+        
+        alias :_original_delete :delete
+        def delete(resource)
+          result = _original_delete(resource)
+          resource.send(relationship.inverse.name)._original_delete(source)
+          result
+        end
+        
+        alias :_original_pop :pop
+        def pop(*)
+          removed = _original_pop
+          removed._original_delete(source) unless removed.nil?
+          removed
+        end
+        
+        alias :_original_shift :shift
+        def shift(*)
+          removed = _original_pop
+          removed._original_delete(source) unless removed.nil?
+          removed
+        end
+        
+        alias :_original_delete_at :delete_at
+        def delete_at(offset)
+          resource = _original_delete_at(offset)
+          resource._original_delete(source) unless removed.nil?
+          resource
+        end
+        
+        # alias :_original_delete_if :delete_if
+        def delete_if
+          results = super { |resource| yield(resource) && resource_removed(resource) }
+          results.each{|r| r._original_delete(source) }
+          results
+        end
+        
+        def reject!
+          results = super { |resource| yield(resource) && resource_removed(resource) }
+          results.each{|r| r._original_delete(source) }
+          results
+        end
+         
+        def replace(other)
+          other = resources_added(other)
+          removed = entries - other
+          new_resources = other - removed
+          resources_removed(removed)
+          removed.each{|r| r._original_delete(source) }
+          new_resources.each{|r| r._original_add(source) }
+          super(other)
+        end
+        
+        alias :_original_clear :clear
+        def clear
+          self.each{|r| r._original_delete(source) }
+          _original_clear
+        end
+         
+        # TODO: Add these
         # slice!, splice, collect!
 
         def _save(safe)
