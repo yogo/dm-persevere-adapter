@@ -8,7 +8,6 @@ require 'digest/md5'
 
 # Things we add or override in DataMapper
 require 'dm/associations/many_to_many'
-require 'dm/associations/many_to_one'
 require 'dm/model'
 require 'dm/property'
 require 'dm/query'
@@ -268,7 +267,7 @@ module DataMapper
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
           payload = resource.to_json_hash(false)
-          scrub_data(payload)
+#          scrub_data(payload)
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -331,7 +330,7 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash()
-          scrub_data(payload)
+#          scrub_data(payload)
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -395,23 +394,41 @@ module DataMapper
           results.each do |rsrc_hash|
             # Typecast attributes, DM expects them properly cast
             query.fields.each do |prop|
-              value = rsrc_hash[prop.field.to_s]
-              # Dereference references
-              if value.is_a?(Hash)
-                value = value["$ref"].split("/")[-1]
-              elsif value.is_a?(Array)
-                debugger
-                value = value.map{ |v| v["$ref"].split("/")[-1] }
+              object_reference = false
+              pname = prop.field.to_s
+              if pname[-3,3] == "_id"
+                pname = pname[0..-4] 
+                object_reference = true
               end
-              if prop.field == 'id'
-                rsrc_hash[prop.field.to_s]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
-              else
-                rsrc_hash[prop.field.to_s] = prop.typecast(value) unless value.nil?
+              value = rsrc_hash[pname]
+#              debugger
+              # Dereference references
+              unless value.nil?
+                if value.is_a?(Hash)
+                  if value.has_key?("$ref")
+                    value = value["$ref"].split("/")[-1]
+                  else
+#                    value = value["id"].split("/")[-1]
+                  end
+                elsif value.is_a?(Array)
+                  value = value.map do |v| 
+                    if v.has_key?("$ref")
+                      v = v["$ref"].split("/")[-1]
+                    else
+#                      v = v["id"].split("/")[-1]
+                    end
+                  end
+                end
+                if prop.field == 'id'
+                  rsrc_hash[pname]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
+                else
+                  rsrc_hash[pname] = prop.typecast(value)
+                end
               end
               # Shift date/time objects to the correct timezone because persevere is UTC
               case prop 
-                when DateTime then rsrc_hash[prop.field.to_s] = value.new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24))
-                when Time then rsrc_hash[prop.field.to_s] = value.getlocal
+                when DateTime then rsrc_hash[pname] = value.new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24))
+                when Time then rsrc_hash[pname] = value.getlocal
               end
             end
           end
