@@ -27,19 +27,20 @@ module DataMapper
           case relation
             when DataMapper::Associations::OneToMany::Relationship, DataMapper::Associations::ManyToMany::Relationship
               schema_hash['properties'][nom] = { "type"     => "array", 
+                                                 "lazy"     => true,
                                                  "optional" => true,  
-                                                 "items"    => {"$ref" => "../#{child.storage_name}"},
+                                                 "items"    => {"$ref" => "/Class/#{child.storage_name}"},
                                                  "minItems" => relation.min,
                                                }
                                                
               schema_hash['properties'][nom]["maxItems"] = relation.max if relation.max != Infinity 
             when DataMapper::Associations::ManyToOne::Relationship, DataMapper::Associations::OneToOne::Relationship
               if self == relation.child_model
-                ref = "../#{parent.storage_name}"
+                ref = "/Class/#{parent.storage_name}"
               else
-                ref = "../#{child.storage_name}"
+                ref = "/Class/#{child.storage_name}"
               end
-              schema_hash['properties'][nom] = { "type" => { "$ref" => ref }, "optional" => true }
+              schema_hash['properties'][nom] = { "type" => { "$ref" => ref }, "lazy" => true, "optional" => true }
           end
         end
         return schema_hash
