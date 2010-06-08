@@ -268,6 +268,7 @@ module DataMapper
           # We might want to make this a post-to_json_hash cleanup instead
           payload = resource.to_json_hash(false)
 #          scrub_data(payload)
+          DataMapper.logger.debug("--> PATH/PAYLOAD: #{path} #{payload.inspect}")
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -331,6 +332,7 @@ module DataMapper
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash()
 #          scrub_data(payload)
+          DataMapper.logger.debug("--> PATH/PAYLOAD: #{path} #{payload.inspect}")
           result = @persevere.update(path, payload)
 
           if result.code == "200"
