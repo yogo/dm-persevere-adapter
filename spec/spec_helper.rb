@@ -2,7 +2,10 @@ require 'pathname'
 require 'rubygems'
 require 'addressable/uri'
 require 'spec'
- 
+
+require 'ruby-debug'
+Debugger.start
+
 require 'dm-core'
 
 def path_to(gem_name, version=nil)

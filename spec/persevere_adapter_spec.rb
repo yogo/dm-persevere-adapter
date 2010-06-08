@@ -9,9 +9,6 @@ require agg_dir / 'spec' / 'public' / 'shared' / 'aggregate_shared_spec'
 
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
-require 'ruby-debug'
-Debugger.start
-
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
     DataMapper::Logger.new(STDOUT, :debug)
@@ -395,6 +392,28 @@ describe DataMapper::Adapters::PersevereAdapter do
         Nugaton.first.bozon.id.should eql bozon.id
       end
       
+      it "should not be required to be in a relationship" do
+        Bozon.has(Infinity, :nugatons)
+        Nugaton.belongs_to(:bozon, :required => false)
+        
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+        
+        bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
+      
+        nugat1 = Nugaton.new(:name => "numero uno")
+        nugat2 = Nugaton.new(:name => "numero duo")
+        
+        bozon.nugatons.push( nugat1 )
+        bozon.save
+        
+        nugat2.save
+        
+        Nugaton.all(:bozon => bozon).length.should eql 1
+        Nugaton.all(:bozon => nil).length.should eql 1
+        
+      end
+      
       it "should create one to many (has n) associations between models" do
         Bozon.has(Infinity, :nugatons)
         Nugaton.belongs_to(:bozon)
@@ -499,5 +518,6 @@ describe DataMapper::Adapters::PersevereAdapter do
         
         Bozon.first.nugatons.length.should be(1)
       end
+      
     end
   end

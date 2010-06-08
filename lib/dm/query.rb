@@ -21,18 +21,27 @@ module DataMapper
 
     def _fugly_munger(condition, loaded_value)
       subject = condition.subject
+
       case subject
         when DataMapper::Associations::ManyToMany::Relationship then
           return_value = "#{condition.subject.field}.contains(/#{subject.child_model.storage_name}/#{loaded_value.key.first})"            
         when DataMapper::Associations::OneToMany::Relationship then
           return_value = "#{condition.subject.field}.contains(/#{subject.parent_model.storage_name}/#{loaded_value.key.first})"
         when DataMapper::Associations::OneToOne::Relationship then 
-          return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
+          if loaded_value.nil?
+            return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}undefined"
+          else
+           return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
+         end
         when DataMapper::Associations::ManyToOne::Relationship then
           if self.model != subject.child_model
             return_value = "#{condition.subject.field}.contains(/#{subject.parent_model.storage_name}/#{loaded_value.key.first})"
           else
-           return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
+            if loaded_value.nil?
+              return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}undefined"
+            else
+             return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
+           end
           end
       end
     end
