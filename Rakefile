@@ -12,15 +12,16 @@ begin
     gemspec.homepage = %q{http://github.com/yogo/dm-persevere-adapter}
     gemspec.authors = ["Ivan R. Judson", "The Yogo Data Management Development Team" ]
     gemspec.rdoc_options = ["--main", "README.txt"]
-    gemspec.add_dependency(%q<dm-core>, [">= 0.10.1"])
+    gemspec.add_dependency(%q<dm-core>, [">= 0.10.2"])
     gemspec.add_dependency(%q<extlib>)
   end
 
   Jeweler::GemcutterTasks.new
-  FileList['tasks/**/*.rake'].each { |task| import task }
 rescue LoadError
   puts "Jeweler not available. Install it with: gem install jeweler"
 end
+
+FileList['tasks/**/*.rake'].each { |task| import task }
 
 ROOT    = Pathname(__FILE__).dirname.expand_path
 JRUBY   = RUBY_PLATFORM =~ /java/
