@@ -8,6 +8,7 @@ require 'digest/md5'
 
 # Things we add or override in DataMapper
 require 'dm/associations/many_to_many'
+require 'dm/associations/relationship'
 require 'dm/model'
 require 'dm/property'
 require 'dm/query'
