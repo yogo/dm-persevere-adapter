@@ -515,7 +515,9 @@ module DataMapper
         if result.code == "200"
           schemas = [JSON.parse(result.body)].flatten.select{ |schema| not RESERVED_CLASSNAMES.include?(schema['id']) }
           schemas.each do |schema|
-            schema['properties']['id'] = { 'type' => "serial", 'index' => true }
+            if schema.has_key?('properties')
+              schema['properties']['id'] = { 'type' => "serial", 'index' => true }
+            end
           end
 #          save_schemas
 
