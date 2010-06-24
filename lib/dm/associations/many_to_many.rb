@@ -24,8 +24,9 @@ module DataMapper
           assert_kind_of 'source',  source,  source_model
           assert_kind_of 'target', target, Array
           target.each {|item| assert_kind_of 'target array element', item, target_model }
-#          assert_kind_of 'target', target, target_model
           lazy_load(source) unless loaded?(source)
+          # NOTE: This seems semantically wrong, a set should just erase the contents, 
+          # not calculate the difference and replace the common elements...
           get!(source).replace(target)
         end
         
@@ -39,9 +40,10 @@ module DataMapper
         #
         # @api private
         def lazy_load(source)
-
+          
           # SEL: load all related resources in the source collection
           collection = source.collection
+          
           # if source.saved? && collection.size > 1 #OLD LINE --IRJ
           if source.saved?
             eager_load(collection)
@@ -104,6 +106,7 @@ module DataMapper
         end
 
         def inverse_name
+          self.prefix = "" if self.prefix.nil? 
           (self.prefix + Extlib::Inflection.underscore(Extlib::Inflection.demodulize(source_model.name)).pluralize).to_sym
         end
 
