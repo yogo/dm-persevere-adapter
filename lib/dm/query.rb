@@ -65,7 +65,6 @@ module DataMapper
           result_string = Array.new
           condition.value.to_a.each do |candidate|
             if condition.subject.is_a?(DataMapper::Associations::Relationship)
-              # debugger
               result_string << _fugly_munger(condition, candidate)
             else
               result_string << "#{condition.subject.name}=#{candidate}"

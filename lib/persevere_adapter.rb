@@ -404,7 +404,6 @@ module DataMapper
                 object_reference = true
               end
               value = rsrc_hash[pname]
-#              debugger
               # Dereference references
               unless value.nil?
                 if value.is_a?(Hash)

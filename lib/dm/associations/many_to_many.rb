@@ -22,9 +22,11 @@ module DataMapper
 
         def set(source, target)
           assert_kind_of 'source',  source,  source_model
-          assert_kind_of 'target', target, target_model
+          assert_kind_of 'target', target, Array
+          target.each {|item| assert_kind_of 'target array element', item, target_model }
+#          assert_kind_of 'target', target, target_model
           lazy_load(source) unless loaded?(source)
-          get!(source).replace([target])
+          get!(source).replace(target)
         end
         
         # Loads association targets and sets resulting value on
@@ -102,7 +104,7 @@ module DataMapper
         end
 
         def inverse_name
-          Extlib::Inflection.underscore(Extlib::Inflection.demodulize(source_model.name)).pluralize.to_sym
+          (self.prefix + Extlib::Inflection.underscore(Extlib::Inflection.demodulize(source_model.name)).pluralize).to_sym
         end
 
         # @api private
@@ -140,7 +142,7 @@ module DataMapper
           resource.send(relationship.inverse.name)._original_add(source)
           _original_add(resource)
         end
-
+        
         alias :_original_concat :concat
         def concat(resources)
           inverse_add(*resources)
@@ -212,8 +214,11 @@ module DataMapper
           removed = entries - other
           new_resources = other - removed
           resources_removed(removed)
-          removed.each{|r| r._original_delete(source) }
-          new_resources.each{|r| r._original_add(source) }
+          removed.each{ |r| delete(r) }
+          new_resources.each do |resource| 
+            resource.send(relationship.inverse.name)._original_add(source)
+            _original_add(resource)
+          end
           super(other)
         end
         
