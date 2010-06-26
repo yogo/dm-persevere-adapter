@@ -361,6 +361,8 @@ module DataMapper
       # @api semipublic
 
       def read_one(query)
+        # TODO: This would be more efficient if it modified the query to limit = 1,
+        # rather than getting all of them and only returning the first one.
         results = read_many(query)
         results[0,1]
       end

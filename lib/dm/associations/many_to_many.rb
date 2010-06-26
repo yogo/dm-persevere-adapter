@@ -19,7 +19,7 @@ module DataMapper
         def query
           @query
         end
-
+        
         def set(source, target)
           assert_kind_of 'source',  source,  source_model
           assert_kind_of 'target', target, Array
