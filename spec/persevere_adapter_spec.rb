@@ -519,5 +519,27 @@ describe DataMapper::Adapters::PersevereAdapter do
         Bozon.first.nugatons.length.should be(1)
       end
       
+      it "should act sanely" do
+        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+        
+        bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
+      
+        nugat1 = Nugaton.create(:name => "numero uno")
+        nugat2 = Nugaton.create(:name => "numero duo")
+        
+        nugat1.bozons << bozon
+        nugat1.save
+        
+        n = Nugaton.get(nugat2.id)
+        n.bozons << Bozon.first
+        n.save
+
+        Bozon.get(bozon.id).nugatons.length.should eql 2
+        
+      end
+      
     end
   end
