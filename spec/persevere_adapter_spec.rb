@@ -11,7 +11,7 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
-    DataMapper::Logger.new(STDOUT, :debug)
+#    DataMapper::Logger.new(STDOUT, :debug)
     @adapter = DataMapper.setup(:default, { 
       :adapter => 'persevere', 
       :host => 'localhost', 
@@ -518,6 +518,45 @@ describe DataMapper::Adapters::PersevereAdapter do
         
         Bozon.first.nugatons.length.should be(1)
       end
-      
+
+      it "should remove resources from both sides of the relationship when there are many on each side" do
+        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+        
+        bozon1 = Bozon.create(:author => 'Jade', :title => "Jade's the author")
+        bozon2 = Bozon.create(:author => 'Ivan', :title => "Blow up the world!")
+        nugat1 = Nugaton.new(:name => "numero uno")
+        nugat2 = Nugaton.new(:name => "numero duo")
+        
+        bozon1.nugatons.push(nugat1, nugat2)
+        bozon2.nugatons = [nugat1,nugat2]
+        bozon1.save
+        bozon2.save
+        
+        bozon1.nugatons.delete(nugat1)
+        bozon1.save
+        
+        # Bozon1 should have only nugaton2        
+        Bozon.get(bozon1.id).nugatons.length.should eql 1
+        Bozon.get(bozon1.id).nugatons.should_not include(nugat1)
+        Bozon.get(bozon1.id).nugatons.should include(nugat2)
+        
+        # Bozon2 should have both nugatons        
+        Bozon.get(bozon2.id).nugatons.length.should eql 2
+        Bozon.get(bozon2.id).nugatons.should include(nugat1)
+        Bozon.get(bozon2.id).nugatons.should include(nugat2)
+        
+        # Nugaton1 should have Bozon2
+        Nugaton.get(nugat1.id).bozons.length.should eql 1
+        Nugaton.get(nugat1.id).bozons.should_not include(bozon1)
+        Nugaton.get(nugat1.id).bozons.should include(bozon2)
+        
+        # Nugaton2 should have both bozons
+        Nugaton.get(nugat2.id).bozons.length.should eql 2
+        Nugaton.get(nugat2.id).bozons.should include(bozon1)
+        Nugaton.get(nugat2.id).bozons.should include(bozon2)
+      end      
     end
   end

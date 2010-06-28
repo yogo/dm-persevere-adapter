@@ -267,8 +267,7 @@ module DataMapper
           path = "/#{resource.model.storage_name}/"
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
-          payload = resource.to_json_hash(false)
-#          scrub_data(payload)
+          payload = resource.to_json_hash(false).delete_if{|key,value| value.nil? }
           DataMapper.logger.debug("--> PATH/PAYLOAD: #{path} #{payload.inspect}")
           response = @persevere.create(path, payload)
 
@@ -332,7 +331,6 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash()
-#          scrub_data(payload)
           DataMapper.logger.debug("--> PATH/PAYLOAD: #{path} #{payload.inspect}")
           result = @persevere.update(path, payload)
 
@@ -381,8 +379,6 @@ module DataMapper
       # @api semipublic
       def read_many(query)
         connect if @persevere.nil?
-
-#        check_schemas
         
         resources = Array.new
         tblname = query.model.storage_name
@@ -411,15 +407,11 @@ module DataMapper
                 if value.is_a?(Hash)
                   if value.has_key?("$ref")
                     value = value["$ref"].split("/")[-1]
-                  else
-#                    value = value["id"].split("/")[-1]
                   end
                 elsif value.is_a?(Array)
                   value = value.map do |v| 
                     if v.has_key?("$ref")
                       v = v["$ref"].split("/")[-1]
-                    else
-#                      v = v["id"].split("/")[-1]
                     end
                   end
                 end
@@ -470,8 +462,6 @@ module DataMapper
         connect if @persevere.nil?
 
         deleted = 0
-        
-#        check_schemas
 
         if ! query.is_a?(DataMapper::Query)
           resources = [query].flatten
@@ -500,8 +490,6 @@ module DataMapper
       def get_schema(name = nil, project = nil)
         path = nil
         single = false
-
-#        check_schemas
         
         if name.nil? & project.nil?
           path = "/Class/"
@@ -520,7 +508,6 @@ module DataMapper
               schema['properties']['id'] = { 'type' => "serial", 'index' => true }
             end
           end
-#          save_schemas
 
           return name.nil? ? schemas : schemas[0..0]
         else
@@ -542,14 +529,11 @@ module DataMapper
           end
         end
         
-#        check_schemas
-        
         scrub_schema(schema_hash['properties'])
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
-        
+        schema_hash.delete_if{|key,value| value.nil? }
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
-#          save_schemas
 
           return JSON.parse(result.body)
         else
@@ -565,8 +549,6 @@ module DataMapper
         scrub_schema(payload['properties'])
         payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
-#        check_schemas
-
         if project.nil?
           path = "/Class/#{id}"
         else
@@ -576,7 +558,6 @@ module DataMapper
         result = @persevere.update(path, payload)
 
         if result.code == '200'
-#          save_schemas
           return result.body
         else
           return false
@@ -595,14 +576,11 @@ module DataMapper
             DataMapper.logger.error("You need an id key/value in the hash")
           end
         end
-
-#        check_schemas
-
+        
         path = "/Class/#{schema_hash['id']}"
         result = @persevere.delete(path)
 
         if result.code == "204"
-#          save_schemas
           return true
         else
           return false
@@ -729,7 +707,7 @@ module DataMapper
         # If the user specified a versioned datastore load the versioning REST code
         # 
         unless get_classes.include?("Versioned") && @options[:versioned]
-          versioned_class = <<-EOF
+          versioned_class =<<-EOF
           {
               id: "Versioned",
               prototype: {
@@ -775,12 +753,25 @@ module DataMapper
               }
           }
           EOF
-          begin
-            response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), versioned_class, { 'Content-Type' => 'application/javascript' } )
-          rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
-                Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-            DataMapper.logger.error("Persevere Create Failed: #{e}, Trying again.")
+          
+          response = @persevere.create('/Class/', versioned_class, { 'Content-Type' => 'application/javascript' } )
+          
+          # Check the response, this needs to be more robust and raise
+          # exceptions when there's a problem
+          if response.code == "201"# good:
+            DataMapper.logger.info("Created versioned class.")
+          else
+            DataMapper.logger.info("Failed to create versioned class.")
           end
+          
+          # headers = { 'Content-Type' => 'application/javascript', 'Accept' => 'application/json' }
+          # begin
+          #   puts "POST #{URI.encode('/Class')}, #{versioned_class}, #{headers.inspect}"
+          #   response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), versioned_class, headers )
+          # rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
+          #       Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+          #   DataMapper.logger.error("Persevere Create Failed: #{e}, Trying again.")
+          # end
         end
       end
     end # class PersevereAdapter
