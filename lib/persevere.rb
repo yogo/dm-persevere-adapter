@@ -59,14 +59,18 @@ class Persevere
   def initialize(url)
     @server_url = url
     server = URI.parse(@server_url)
-    @root_path = server.path || ''
+    @base_uri = server.path || ''
     @persevere = Net::HTTP.new(server.host, server.port)
   end
 
   # Pass in a resource hash
   def create(path, resource, headers = {})
-    path = @root_path + path
-    json_blob = resource.reject{|key,value| value.nil? }.to_json
+    path = @base_uri + path
+    if headers.has_key?('Content-Type') && headers['Content-Type'] != 'application/json'
+      json_blob = resource
+    else
+      json_blob = resource.delete_if{|key,value| value.nil? }.to_json
+    end
     response = nil
     while response.nil?
       begin
@@ -80,7 +84,7 @@ class Persevere
   end
 
   def retrieve(path, headers = {})
-    path = @root_path + path
+    path = @base_uri + path
     response = nil
     while response.nil?
       begin
@@ -94,7 +98,7 @@ class Persevere
   end
 
   def update(path, resource, headers = {})
-    path = @root_path + path
+    path = @base_uri + path
     json_blob = resource.to_json
     response = nil
     while response.nil?
@@ -109,7 +113,7 @@ class Persevere
   end
 
   def delete(path, headers = {})
-    path = @root_path + path
+    path = @base_uri + path
     response = nil
     while response.nil?
       begin
