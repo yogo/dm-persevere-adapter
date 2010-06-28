@@ -520,11 +520,7 @@ describe DataMapper::Adapters::PersevereAdapter do
       end
 
       it "should remove resources from both sides of the relationship when there are many on each side" do
-        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
-        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
-        Bozon.auto_upgrade!
-        Nugaton.auto_upgrade!
-        
+
         bozon1 = Bozon.create(:author => 'Jade', :title => "Jade's the author")
         bozon2 = Bozon.create(:author => 'Ivan', :title => "Blow up the world!")
         nugat1 = Nugaton.new(:name => "numero uno")
@@ -558,5 +554,28 @@ describe DataMapper::Adapters::PersevereAdapter do
         Nugaton.get(nugat2.id).bozons.should include(bozon1)
         Nugaton.get(nugat2.id).bozons.should include(bozon2)
       end      
+
+      it "should act sanely" do
+        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+
+        bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
+      
+        nugat1 = Nugaton.create(:name => "numero uno")
+        nugat2 = Nugaton.create(:name => "numero duo")
+        
+        nugat1.bozons << bozon
+        nugat1.save
+        
+        n = Nugaton.get(nugat2.id)
+        n.bozons << Bozon.first
+        n.save
+
+        Bozon.get(bozon.id).nugatons.length.should eql 2
+        
+      end
+      
     end
   end
