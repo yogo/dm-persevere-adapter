@@ -620,7 +620,12 @@ module DataMapper
         @options[:scheme] = @options[:adapter]
         @options.delete(:scheme)
 
-        @resource_naming_convention = NamingConventions::Resource::Underscored
+        # @resource_naming_convention = NamingConventions::Resource::Underscored
+        @resource_naming_convention = lambda do |value|
+          # value.split('::').map{ |val| Extlib::Inflection.underscore(val) }.join('__')
+          Extlib::Inflection.underscore(value).gsub('/', '__')
+        end
+        
         @identity_maps = {}
         @persevere = nil
         @prepped = false
