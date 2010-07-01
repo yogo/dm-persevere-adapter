@@ -173,7 +173,7 @@ module DataMapper
           prop_name = property.name.to_s
           prop_type = property.type
           next if prop_name == 'id' || 
-                  (current_schema_hash['properties'].has_key?(prop_name) && 
+                  (current_schema_hash.has_key?('properties') && current_schema_hash['properties'].has_key?(prop_name) && 
                   new_schema_hash['properties'][prop_name]['type'] == current_schema_hash['properties'][prop_name]['type'] )
           property
         end.compact
@@ -529,16 +529,21 @@ module DataMapper
           end
         end
         
-        scrub_schema(schema_hash['properties'])
+        # Don't initially create with properties 
+        properties = schema_hash.delete('properties') 
+        scrub_schema(properties)
+        
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         schema_hash.delete_if{|key,value| value.nil? }
-        result = @persevere.create(path, schema_hash)
-        if result.code == '201'
+        initial_creation_result = @persevere.create(path, schema_hash, {'Transaction' => 'open'})
 
-          return JSON.parse(result.body)
+        if initial_creation_result == '201'
+          schema_hash['properties'] = properties
+          return update_schema(update_schema)
         else
           return false
         end
+        
       end
 
       ##
