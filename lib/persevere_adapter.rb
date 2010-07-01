@@ -530,12 +530,14 @@ module DataMapper
         end
         
         scrub_schema(schema_hash['properties'])
+        properties = schema_hash.delete('properties')
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         schema_hash.delete_if{|key,value| value.nil? }
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
-
-          return JSON.parse(result.body)
+          # return JSON.parse(result.body)
+          schema_hash['properties'] = properties
+          return update_schema(schema_hash)
         else
           return false
         end
