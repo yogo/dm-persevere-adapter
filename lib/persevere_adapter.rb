@@ -539,7 +539,7 @@ module DataMapper
 
         if initial_creation_result == '201'
           schema_hash['properties'] = properties
-          return update_schema(schema_hash)
+          return update_schema(update_schema)
         else
           return false
         end
