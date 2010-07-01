@@ -520,7 +520,9 @@ describe DataMapper::Adapters::PersevereAdapter do
       end
 
       it "should remove resources from both sides of the relationship when there are many on each side" do
-
+        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+        
         bozon1 = Bozon.create(:author => 'Jade', :title => "Jade's the author")
         bozon2 = Bozon.create(:author => 'Ivan', :title => "Blow up the world!")
         nugat1 = Nugaton.new(:name => "numero uno")
