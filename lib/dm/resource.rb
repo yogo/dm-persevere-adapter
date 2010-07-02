@@ -1,48 +1,6 @@
 module DataMapper
   module Resource
 
-    def get_new_objects
-      new_parents = parent_resources.select{|p| p.new? }
-      new_children = child_collections.collect{ |collection| collection.select{|c| c.new? }}.flatten
-      new_children_of_new_parents = new_parents.map{ |np| np.__send__(:child_collections).collect{ |n| select{ |p| p.new? }}}.flatten
-      new_parents_of_new_children = new_children.map{ |nc| nc.__send__(:parent_resources).select{|p| p.new? }}.flatten
-      [ new_parents, new_children, new_children_of_new_parents, new_parents_of_new_children, self.new? ? self : [] ].flatten.uniq
-    end
-
-    def create_hook
-      op = original_attributes.dup
-      _create
-      @_original_attributes = op.dup
-    end
-    
-    alias _old_update _update
-    def _update
-      if repository.adapter.is_a?(DataMapper::Adapters::PersevereAdapter)
-        # remove from the identity map
-        remove_from_identity_map
-    
-        repository.update(dirty_attributes, collection_for_self)
-    
-        # remove the cached key in case it is updated
-        remove_instance_variable(:@_key)
-    
-        add_to_identity_map
-    
-        true
-      else
-        _old_update
-      end
-    end
-
-    alias _old_save _save
-     def _save(safe)
-       objects = get_new_objects
-       objects.each do |obj|
-         obj.__send__(:save_self, safe)
-       end
-       _old_save(safe)
-     end
-
     ##
     # Convert a DataMapper Resource to a JSON.
     #
