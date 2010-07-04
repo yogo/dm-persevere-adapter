@@ -37,10 +37,11 @@ module DataMapper
         
         connect if @persevere.nil?
         resources = Array.new
-        json_query = query.to_json_query
+
+        json_query, headers = query.to_json_query
         path = "/#{query.model.storage_name}/#{json_query}"
       
-        response = @persevere.retrieve(path)
+        response = @persevere.retrieve(path, headers)
 
         if response.code == "200"
           results = [response.body]
