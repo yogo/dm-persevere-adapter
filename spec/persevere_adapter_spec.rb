@@ -11,7 +11,7 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
-#    DataMapper::Logger.new(STDOUT, :debug)
+    DataMapper::Logger.new(STDOUT, :debug)
     @adapter = DataMapper.setup(:default, { 
       :adapter => 'persevere', 
       :host => 'localhost', 
@@ -19,7 +19,6 @@ describe DataMapper::Adapters::PersevereAdapter do
       :versioned => true
       })
       @repository = DataMapper.repository(@adapter.name)
-
     end
 
     before :each do
@@ -520,15 +519,20 @@ describe DataMapper::Adapters::PersevereAdapter do
       end
 
       it "should remove resources from both sides of the relationship when there are many on each side" do
-
+        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+        Bozon.auto_upgrade!
+        Nugaton.auto_upgrade!
+        
         bozon1 = Bozon.create(:author => 'Jade', :title => "Jade's the author")
         bozon2 = Bozon.create(:author => 'Ivan', :title => "Blow up the world!")
         nugat1 = Nugaton.new(:name => "numero uno")
         nugat2 = Nugaton.new(:name => "numero duo")
         
         bozon1.nugatons.push(nugat1, nugat2)
-        bozon2.nugatons = [nugat1,nugat2]
         bozon1.save
+
+        bozon2.nugatons = [nugat1,nugat2]
         bozon2.save
         
         bozon1.nugatons.delete(nugat1)
@@ -574,8 +578,6 @@ describe DataMapper::Adapters::PersevereAdapter do
         n.save
 
         Bozon.get(bozon.id).nugatons.length.should eql 2
-        
       end
-      
     end
   end

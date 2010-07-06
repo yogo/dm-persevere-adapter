@@ -763,15 +763,6 @@ module DataMapper
           else
             DataMapper.logger.info("Failed to create versioned class.")
           end
-          
-          # headers = { 'Content-Type' => 'application/javascript', 'Accept' => 'application/json' }
-          # begin
-          #   puts "POST #{URI.encode('/Class')}, #{versioned_class}, #{headers.inspect}"
-          #   response = @persevere.persevere.send_request('POST', URI.encode('/Class/'), versioned_class, headers )
-          # rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
-          #       Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-          #   DataMapper.logger.error("Persevere Create Failed: #{e}, Trying again.")
-          # end
         end
       end
     end # class PersevereAdapter
