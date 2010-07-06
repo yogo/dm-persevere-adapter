@@ -61,6 +61,8 @@ class Persevere
     server = URI.parse(@server_url)
     @base_uri = server.path || ''
     @persevere = Net::HTTP.new(server.host, server.port)
+    @client_id = "dm-persevere-adapter-#{(rand*1000)}" # just need a small random string
+    @sequence_id = 0
   end
 
   # Pass in a resource hash
@@ -74,7 +76,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('POST', URI.encode(path), json_blob, HEADERS.merge(headers))
+        response = @persevere.send_request('POST', URI.encode(path), json_blob, default_headers.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Create Failed: #{e}, Trying again."
@@ -88,7 +90,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('GET', URI.encode(path), nil, HEADERS.merge(headers))
+        response = @persevere.send_request('GET', URI.encode(path), nil, default_headers.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Retrieve Failed: #{e}, Trying again."
@@ -103,7 +105,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('PUT', URI.encode(path), json_blob, HEADERS.merge(headers))
+        response = @persevere.send_request('PUT', URI.encode(path), json_blob, default_headers.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Create Failed: #{e}, Trying again."
@@ -117,7 +119,7 @@ class Persevere
     response = nil
     while response.nil?
       begin
-        response = @persevere.send_request('DELETE', URI.encode(path), nil, HEADERS.merge(headers))
+        response = @persevere.send_request('DELETE', URI.encode(path), nil, default_headers.merge(headers))
       rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,
             Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
         puts "Persevere Create Failed: #{e}, Trying again."
@@ -125,4 +127,12 @@ class Persevere
     end
     return PersevereResult.make(response)
   end
+  
+  private
+  
+  def default_headers
+    @sequence_id += 1
+    HEADERS.merge( {'Seq-Id' => @sequence_id.to_s, 'Client-Id' => @client_id } )
+  end
+  
 end # class Persevere

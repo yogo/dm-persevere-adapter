@@ -164,7 +164,7 @@ module DataMapper
       limit = self.limit.nil? ? nil : self.limit.to_i + offset - 1
       
       if offset != 0 || !limit.nil?
-        headers.merge!({"Range", "items=#{offset}-#{limit}"})
+        headers.merge!( {"Range" => "items=#{offset}-#{limit}"} )
       end
       # puts "#{inspect}"
       # puts json_query, headers

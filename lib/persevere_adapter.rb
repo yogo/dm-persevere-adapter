@@ -37,10 +37,11 @@ module DataMapper
         
         connect if @persevere.nil?
         resources = Array.new
-        json_query = query.to_json_query
+
+        json_query, headers = query.to_json_query
         path = "/#{query.model.storage_name}/#{json_query}"
       
-        response = @persevere.retrieve(path)
+        response = @persevere.retrieve(path, headers)
 
         if response.code == "200"
           results = [response.body]
@@ -530,12 +531,14 @@ module DataMapper
         end
         
         scrub_schema(schema_hash['properties'])
+        properties = schema_hash.delete('properties')
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         schema_hash.delete_if{|key,value| value.nil? }
         result = @persevere.create(path, schema_hash)
         if result.code == '201'
-
-          return JSON.parse(result.body)
+          # return JSON.parse(result.body)
+          schema_hash['properties'] = properties
+          return update_schema(schema_hash)
         else
           return false
         end
@@ -620,7 +623,12 @@ module DataMapper
         @options[:scheme] = @options[:adapter]
         @options.delete(:scheme)
 
-        @resource_naming_convention = NamingConventions::Resource::Underscored
+        # @resource_naming_convention = NamingConventions::Resource::Underscored
+        @resource_naming_convention = lambda do |value|
+          # value.split('::').map{ |val| Extlib::Inflection.underscore(val) }.join('__')
+          Extlib::Inflection.underscore(value).gsub('/', '__')
+        end
+        
         @identity_maps = {}
         @persevere = nil
         @prepped = false

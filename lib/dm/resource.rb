@@ -77,17 +77,22 @@ module DataMapper
       end
 
       attributes(:property).each do |property, value|
+        # debugger if model.name == 'Yogo::Setting' && property.name == :value
         next if value.nil? || (value.is_a?(Array) && value.empty?) || relations.include?(property.name.to_s)
 
-        json_rsrc[property.field] = case value
-        when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
-        when Date then value.to_s
-        when Time then value.strftime("%H:%M:%S")
-        when Float then value.to_f
-        when BigDecimal then value.to_f
-        when Integer then value.to_i
-        else # when String, TrueClass, FalseClass then
-          self[property.name]
+        if property.type.respond_to?(:dump)
+          json_rsrc[property.field] = property.type.dump(value, nil)
+        else
+          json_rsrc[property.field] = case value
+          when DateTime then value.new_offset(0).strftime("%Y-%m-%dT%H:%M:%SZ")
+          when Date then value.to_s
+          when Time then value.strftime("%H:%M:%S")
+          when Float then value.to_f
+          when BigDecimal then value.to_f
+          when Integer then value.to_i
+          else # when String, TrueClass, FalseClass then
+            self[property.name]
+          end
         end
       end
 

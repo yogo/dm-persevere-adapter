@@ -15,7 +15,7 @@ describe DataMapper::Adapters::PersevereAdapter do
     @adapter = DataMapper.setup(:default, { 
       :adapter => 'persevere', 
       :host => 'localhost', 
-      :port => '8080', 
+      :port => 8080, 
       :versioned => true
       })
       @repository = DataMapper.repository(@adapter.name)
@@ -221,7 +221,7 @@ describe DataMapper::Adapters::PersevereAdapter do
         Bozon.create(:author => 'Robbie', :created_at => orig_date, :title => '1 week ago')
         Bozon.create(:author => 'Ivan',   :created_at => DateTime.now, :title => 'About Now')
         Bozon.create(:author => 'Sean',   :created_at => DateTime.now + 7, :title => 'Sometime later')
-    
+
         Bozon.count.should eql(3)
         Bozon.count(:created_at => orig_date).should eql(1)
         Bozon.count(:created_at.gt => orig_date).should eql(2)
@@ -521,6 +521,7 @@ describe DataMapper::Adapters::PersevereAdapter do
       it "should remove resources from both sides of the relationship when there are many on each side" do
         Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
         Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+
         Bozon.auto_upgrade!
         Nugaton.auto_upgrade!
         
