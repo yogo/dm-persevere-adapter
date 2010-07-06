@@ -413,6 +413,8 @@ module DataMapper
                   value = value.map do |v| 
                     if v.has_key?("$ref")
                       v = v["$ref"].split("/")[-1]
+                    else
+                      v
                     end
                   end
                 end
