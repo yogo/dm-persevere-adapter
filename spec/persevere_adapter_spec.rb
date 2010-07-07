@@ -11,7 +11,7 @@ require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 
 describe DataMapper::Adapters::PersevereAdapter do
   before :all do
-    DataMapper::Logger.new(STDOUT, :debug)
+    # DataMapper::Logger.new(STDOUT, :debug)
     @adapter = DataMapper.setup(:default, { 
       :adapter => 'persevere', 
       :host => 'localhost', 
@@ -536,6 +536,7 @@ describe DataMapper::Adapters::PersevereAdapter do
         bozon2.nugatons = [nugat1,nugat2]
         bozon2.save
         
+        # debugger
         bozon1.nugatons.delete(nugat1)
         bozon1.save
         
@@ -573,7 +574,6 @@ describe DataMapper::Adapters::PersevereAdapter do
         
         nugat1.bozons << bozon
         nugat1.save
-        
         n = Nugaton.get(nugat2.id)
         n.bozons << Bozon.first
         n.save
