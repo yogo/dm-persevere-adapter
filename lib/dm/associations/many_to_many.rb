@@ -29,30 +29,6 @@ module DataMapper
           # not calculate the difference and replace the common elements...
           get!(source).replace(target)
         end
-        
-        # Loads association targets and sets resulting value on
-        # given source resource
-        #
-        # @param [Resource] source
-        #   the source resource for the association
-        #
-        # @return [undefined]
-        #
-        # @api private
-        def lazy_load(source)
-          
-          # SEL: load all related resources in the source collection
-          collection = source.collection
-          
-          # if source.saved? && collection.size > 1 #OLD LINE --IRJ
-          if source.saved?
-            eager_load(collection)
-          end
-
-          unless loaded?(source)
-            set!(source, collection_for(source))
-          end
-        end
          
          # Eager load the collection using the source as a base
          #
@@ -76,24 +52,6 @@ module DataMapper
            end
          
            targets
-         end
-
-         def associate_targets(source, targets)
-           # TODO: create an object that wraps this logic, and when the first
-           # kicker is fired, then it'll load up the collection, and then
-           # populate all the other methods
-           target_maps = Hash.new { |hash, key| hash[key] = [] }
-
-           targets.each do |target|
-             target_maps[target_key.get(target)] << target
-           end
-
-           Array(source).each do |source|
-             key = source_key.get(source)
-             # eager_load_targets(source, target_maps[key], query)
-
-             set!(source, collection_for(source, query).set(targets))
-           end
          end
 
         private
