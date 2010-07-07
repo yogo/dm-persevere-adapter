@@ -57,9 +57,6 @@ module DataMapper
       if include_relationships
         self.model.relationships.each do |nom, relation|
           value = relation.get!(self)
-          parent = relation.parent_model
-          child = relation.child_model
-          
           unless value.nil?
             json_rsrc[nom] = case relation
               # KEEP THIS CASE AT THE TOP BECAUSE IT IS_A OneToMany ARGH
