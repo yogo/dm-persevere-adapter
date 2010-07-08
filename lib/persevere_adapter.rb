@@ -367,7 +367,7 @@ module DataMapper
         json_query, headers = query.to_json_query
         
         path = "/#{tblname}/#{json_query}"
-        DataMapper.logger.debug("(Read) PATH/QUERY: #{path}")
+        DataMapper.logger.debug("--> PATH/QUERY/HEADERS: #{path} #{headers.inspect}")
         
         response = @persevere.retrieve(path, headers)
         
