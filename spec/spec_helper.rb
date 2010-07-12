@@ -1,5 +1,8 @@
-require 'pathname'
 require 'rubygems'
+require 'bundler'
+Bundler.setup
+
+require 'pathname'
 require 'addressable/uri'
 
 require 'ruby-debug'
