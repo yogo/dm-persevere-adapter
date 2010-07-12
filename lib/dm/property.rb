@@ -2,12 +2,8 @@ module DataMapper
   class Property
 
     def to_json_schema_hash(repo)
-
       tm = repository(repo).adapter.type_map
-      type_information = tm[type]
-      if type_information.nil? && type.respond_to?(:primitive)
-        type_information = tm[type.primitive]
-      end
+      type_information = tm[primitive]
       
       json_hash = Hash.new
       json_hash = {      "type"      => type_information[:primitive] }

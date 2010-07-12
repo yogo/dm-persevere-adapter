@@ -8,7 +8,6 @@ module DataMapper
 
         remove_method :through
         remove_method :via
-        remove_method :lazy_load
         remove_method :source_scope
         remove_method :inverted_options
         remove_method :valid_target?
@@ -192,10 +191,10 @@ module DataMapper
         # TODO: Add these
         # slice!, splice, collect!
 
-        def _save(safe)
+        def _save(execute_hooks = true)
           loaded_entries = self.loaded_entries
           @removed.clear
-          loaded_entries.all? { |resource| resource.__send__(safe ? :save : :save!) }
+          loaded_entries.all? { |resource| resource.__send__(:_save, execute_hooks) }
         end
         
         private

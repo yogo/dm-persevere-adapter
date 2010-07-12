@@ -2,6 +2,9 @@ require 'rubygems'
 require 'dm-core'
 require 'dm-aggregates'
 require 'dm-types'
+require 'dm-migrations'
+require 'dm-migrations/auto_migration'
+require 'dm-validations'
 require 'extlib'
 require 'bigdecimal'
 require 'digest/md5'
@@ -100,9 +103,8 @@ module DataMapper
   module Migrations
     module PersevereAdapter
       # @api private
-      def self.included(base)  
+      def self.included(base)
         DataMapper.extend(Migrations::SingletonMethods)
-
         [ :Repository, :Model ].each do |name|
           DataMapper.const_get(name).send(:include, Migrations.const_get(name))
         end
@@ -216,13 +218,13 @@ module DataMapper
       # @api private
       chainable do
         def type_map
-          length    = Property::DEFAULT_LENGTH
-          precision = Property::DEFAULT_PRECISION
-          scale     = Property::DEFAULT_SCALE_BIGDECIMAL
+          length    = DataMapper::Property::String::DEFAULT_LENGTH
+          precision = DataMapper::Property::Numeric::DEFAULT_PRECISION
+          scale     = DataMapper::Property::Decimal::DEFAULT_SCALE
 
           @type_map ||= {
-            Types::Serial             => { :primitive => 'integer' },
-            Types::Boolean            => { :primitive => 'boolean' },
+            Property::Serial             => { :primitive => 'integer' },
+            Property::Boolean            => { :primitive => 'boolean' },
             Integer                   => { :primitive => 'integer'},
             String                    => { :primitive => 'string'},
             Class                     => { :primitive => 'string'},
@@ -232,9 +234,9 @@ module DataMapper
             Date                      => { :primitive => 'string', :format => 'date'},
             Time                      => { :primitive => 'string', :format => 'time'},
             TrueClass                 => { :primitive => 'boolean'},
-            Types::Text               => { :primitive => 'string'},
-            DataMapper::Types::Object => { :primitive => 'string'},
-            DataMapper::Types::URI    => { :primitive => 'string', :format => 'uri'}
+            Property::Text               => { :primitive => 'string'},
+            DataMapper::Property::Object => { :primitive => 'string'},
+            DataMapper::Property::URI    => { :primitive => 'string', :format => 'uri'}
           }.freeze
         end
       end
@@ -268,8 +270,8 @@ module DataMapper
           path = "/#{resource.model.storage_name}/"
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
-          payload = resource.to_json_hash(false).delete_if{|key,value| value.nil? }
-          DataMapper.logger.debug("--> PATH/PAYLOAD: #{path} #{payload.inspect}")
+          payload = resource.to_json_hash.delete_if{|key,value| value.nil? }
+          DataMapper.logger.debug("(Create) PATH/PAYLOAD: #{path} #{payload.inspect}")
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -331,8 +333,8 @@ module DataMapper
         resources.each do |resource|
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
-          payload = resource.to_json_hash()
-          DataMapper.logger.debug("--> PATH/PAYLOAD: #{path} #{payload.inspect}")
+          payload = resource.to_json_hash
+          DataMapper.logger.debug("(Update) PATH/PAYLOAD: #{path} #{payload.inspect}")
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -342,28 +344,6 @@ module DataMapper
           end
         end
         return updated
-      end
-
-      ##
-      # Look up a single record from the data-store. "SELECT ... LIMIT
-      # 1" in SQL.  Used by Model#get to find a record by its
-      # identifier(s), and Model#first to find a single record by some
-      # search query.
-      #
-      # @param [DataMapper::Query] query
-      #   The query to be used to locate the resource.
-      #
-      # @return [DataMapper::Resource]
-      #   A Resource object representing the record that was found, or
-      #   nil for no matching records.
-      #
-      # @api semipublic
-
-      def read_one(query)
-        # TODO: This would be more efficient if it modified the query to limit = 1,
-        # rather than getting all of them and only returning the first one.
-        results = read_many(query)
-        results[0,1]
       end
 
       ##
@@ -378,7 +358,7 @@ module DataMapper
       #   A collection of all the resources found by the query.
       #
       # @api semipublic
-      def read_many(query)
+      def read(query)
         connect if @persevere.nil?
         
         resources = Array.new
@@ -387,7 +367,7 @@ module DataMapper
         json_query, headers = query.to_json_query
         
         path = "/#{tblname}/#{json_query}"
-        DataMapper.logger.debug("--> PATH/QUERY: #{path}")
+        DataMapper.logger.debug("(Read) PATH/QUERY: #{path}")
         
         response = @persevere.retrieve(path, headers)
         
@@ -449,8 +429,6 @@ module DataMapper
         resources
       end
 
-      alias :read :read_many
-
       ##
       # Destroys all the records matching the given query. "DELETE" in SQL.
       #
@@ -475,6 +453,8 @@ module DataMapper
         resources.each do |resource|
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.id}"
+
+          DataMapper.logger.debug("(Delete) PATH/QUERY: #{path}")
 
           result = @persevere.delete(path)
 
@@ -584,7 +564,6 @@ module DataMapper
         
         path = "/Class/#{schema_hash['id']}"
         result = @persevere.delete(path)
-
         if result.code == "204"
           return true
         else
@@ -624,7 +603,7 @@ module DataMapper
         
         @options[:scheme] = @options[:adapter]
         @options.delete(:scheme)
-
+        
         # @resource_naming_convention = NamingConventions::Resource::Underscored
         @resource_naming_convention = lambda do |value|
           # value.split('::').map{ |val| Extlib::Inflection.underscore(val) }.join('__')

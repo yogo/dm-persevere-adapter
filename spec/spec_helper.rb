@@ -1,7 +1,6 @@
 require 'pathname'
 require 'rubygems'
 require 'addressable/uri'
-require 'spec'
 
 require 'ruby-debug'
 Debugger.start
