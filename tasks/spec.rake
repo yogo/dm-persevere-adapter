@@ -1,5 +1,4 @@
 begin
-  gem 'rspec'
   require 'spec'
   require 'spec/rake/spectask'
 
