@@ -1,12 +1,12 @@
 require File.dirname(__FILE__) + '/spec_helper'
-require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere'
+require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_client'
 
-describe Persevere do
+describe PersevereClient do
   #
   # Create an object to interact with Persevere
   #
   before :all do
-    @p = Persevere.new('http://localhost:8080')
+    @p = PersevereClient.new('http://localhost:8080')
 
     @blobObj = {
       'id' => 'Yogo',

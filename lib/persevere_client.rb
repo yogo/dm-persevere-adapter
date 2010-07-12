@@ -49,7 +49,7 @@ class PersevereResult
   end
 end
 
-class Persevere
+class PersevereClient
   HEADERS = { 'Accept' => 'application/json',
               'Content-Type' => 'application/json'
             } unless defined?(HEADERS)
@@ -135,4 +135,4 @@ class Persevere
     HEADERS.merge( {'Seq-Id' => @sequence_id.to_s, 'Client-Id' => @client_id } )
   end
   
-end # class Persevere
+end # class PersevereClient
