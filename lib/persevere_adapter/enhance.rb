@@ -17,6 +17,18 @@ module DataMapper
         proxy = self.new(target)
         
         case target
+        when DataMapper::Resource
+          proxy.extend(JSONSupport::Core)
+          proxy.extend(JSONSupport::Resource)
+        when DataMapper::Model
+          proxy.extend(JSONSupport::Core)
+          proxy.extend(JSONSupport::Model)
+          proxy.extend(JSONSupport::Model::Properties)
+        when DataMapper::Property
+          proxy.extend(JSONSupport::Core)
+          proxy.extend(JSONSupport::Property)
+        when DataMapper::Query
+          proxy.extend(Persevere::Query)
         else
           return target
         end
