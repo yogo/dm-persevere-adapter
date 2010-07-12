@@ -19,3 +19,10 @@ def path_to(gem_name, version=nil)
     expanded_path = File.join(File.dirname(spec_path), '..', 'gems', "#{spec.name}-#{spec.version}")
   end
 end
+
+def path_in_gem(name, *paths)
+  loaded_gem = Gem.loaded_specs[name]
+  return null unless loaded_gem
+  
+  File.join(loaded_gem.full_gem_path, *paths)
+end
