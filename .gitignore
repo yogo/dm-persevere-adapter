@@ -3,3 +3,4 @@ tmp
 coverage
 *.gemspec
 .rvmrc
+.DS_Store
