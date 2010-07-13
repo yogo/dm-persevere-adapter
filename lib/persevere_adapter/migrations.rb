@@ -1,13 +1,6 @@
 module DataMapper
   module Persevere
     module Migrations
-      # @api private
-      def self.included(base)
-        DataMapper.extend(Migrations::SingletonMethods)
-        [ :Repository, :Model ].each do |name|
-          DataMapper.const_get(name).send(:include, Migrations.const_get(name))
-        end
-      end
 
       # Returns whether the storage_name exists.
       #
@@ -102,6 +95,7 @@ module DataMapper
   end # module Persevere
 end # module DataMapper
 
+DataMapper::Migrations.include_migration_api
 DataMapper::Persevere::Adapter.send(:include, DataMapper::Persevere::Migrations)
 
 
