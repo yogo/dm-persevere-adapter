@@ -11,8 +11,6 @@ module DataMapper
             # Handle properties
             properties.select { |prop| prop.field != 'id' }.each do |prop| 
               prop = Persevere.enhance(prop)
-              puts prop.inspect
-              puts prop.to_json_hash(repository_name).inspect
               schema_hash['properties'][prop.field] = prop.to_json_hash(repository_name) 
             end
           
