@@ -25,6 +25,7 @@ module DataMapper
       #
       # @api semipublic
       def create_model_storage(model)
+        model = Persevere.enhance(model)
         name       = self.name
         properties = model.properties_with_subclasses(name)
         
@@ -51,6 +52,7 @@ module DataMapper
       #
       # @api semipublic
       def upgrade_model_storage(model)
+        model = Persevere.enhance(model)
         name       = self.name
         properties = model.properties_with_subclasses(name)
         
@@ -85,6 +87,7 @@ module DataMapper
       #
       # @api semipublic
       def destroy_model_storage(model)
+        model = Persevere.enhance(model)
         return true unless storage_exists?(model.storage_name(name))
         schema_hash = model.to_json_schema_hash()
         return true unless delete_schema(schema_hash) == false
