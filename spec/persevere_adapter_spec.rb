@@ -1,8 +1,8 @@
 require File.dirname(__FILE__) + '/spec_helper' 
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
-require DataMapper.root / 'lib' / 'dm-core' / 'spec' / 'shared' / 'adapter_spec'
+require 'dm-core' / 'spec' / 'shared' / 'adapter_spec'
 #require path_to("dm-aggregates", "1.0.0")[0] / 'spec' / 'spec_helper'
-require path_to("dm-aggregates", "1.0.0")[0] / 'spec' / 'public' / 'shared' / 'aggregate_shared_spec'
+require path_in_gem("dm-aggregates", 'spec' ,'public' ,'shared', 'aggregate_shared_spec')
 
 describe DataMapper::Adapters::PersevereAdapter do
 
