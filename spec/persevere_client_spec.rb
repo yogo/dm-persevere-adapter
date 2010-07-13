@@ -10,6 +10,7 @@ describe PersevereClient do
 
     @blobObj = {
       'id' => 'Yogo',
+      'prototype' => {},
       'properties' => {
         'cid' => {'type' => 'string', 'optional' => true },
         'parent' => { 'type' => 'string', 'optional' => true},
