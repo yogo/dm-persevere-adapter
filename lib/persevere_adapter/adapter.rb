@@ -61,7 +61,8 @@ module DataMapper
         
         check_schemas
         
-        resources.each do |resource|          
+        resources.each do |resource|
+          resource = Persevere.enhance(resource)
           serial = resource.model.serial(self.name)
           path = "/#{resource.model.storage_name}/"
           # Invoke to_json_hash with a boolean to indicate this is a create
@@ -127,6 +128,7 @@ module DataMapper
         end
 
         resources.each do |resource|
+          resource = Persevere.enhance(resource)
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash
@@ -156,6 +158,7 @@ module DataMapper
       # @api semipublic
       def read(query)
         connect if @persevere.nil?
+        query = Persevere.enhance(query)
         
         resources = Array.new
         tblname = query.model.storage_name
