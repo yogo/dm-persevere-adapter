@@ -9,11 +9,11 @@ module DataMapper
           return schema_hash
         end
         
-        def to_json_schema(repository_name = nil)
+        def to_json_schema(repository_name = default_repository_name)
           to_json(repository_name)
         end
         
-        def to_json_schema_hash(repository_name = nil)
+        def to_json_schema_hash(repository_name = default_repository_name)
           to_json_hash(repository_name)
         end
       end # JSONSchema
