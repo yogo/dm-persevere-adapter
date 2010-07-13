@@ -4,6 +4,7 @@ gem "dm-core", ">= 0.10.2"
 gem "dm-aggregates", ">= 0.10.2"
 gem "dm-types", ">= 0.10.2"
 gem "dm-migrations"
+gem "dm-validations"
 gem "extlib"
 
 group :development do
