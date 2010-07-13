@@ -425,7 +425,7 @@ module DataMapper
       def connect
         if ! @prepped
           uri = URI::HTTP.build(@options).to_s
-          @persevere = Persevere.new(uri)
+          @persevere = PersevereClient.new(uri)
           prep_persvr unless @prepped
         end
       end
