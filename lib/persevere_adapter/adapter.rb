@@ -1,12 +1,11 @@
 module DataMapper
   module Persevere
-    class Adapter < AbstractAdapter
+    class Adapter < DataMapper::Adapters::AbstractAdapter
       extend Chainable
       extend Deprecate
       
       RESERVED_CLASSNAMES = ['User','Transaction','Capability','File','Class', 'Object', 'Versioned']
 
-      include Migrations::PersevereAdapter
       
       # Default types for all data object based adapters.
       #
@@ -554,7 +553,7 @@ module DataMapper
     end # class Adapter
   end # module Persevere
 
-  DataMapper::Adapters::PersevereAdapter = Persevere::Adapter
+  DataMapper::Adapters::PersevereAdapter = DataMapper::Persevere::Adapter
   DataMapper::Adapters.const_added(:PersevereAdapter)
 end # DataMapper
     
