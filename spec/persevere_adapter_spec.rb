@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 require Pathname(__FILE__).dirname.expand_path.parent + 'lib/persevere_adapter'
 require 'dm-core' / 'spec' / 'shared' / 'adapter_spec'
 #require path_to("dm-aggregates", "1.0.0")[0] / 'spec' / 'spec_helper'
-require path_in_gem("dm-aggregates", 'spec' ,'public' ,'shared', 'aggregate_shared_spec')
+require path_in_gem("dm-aggregates", 'spec', 'public', 'shared', 'aggregate_shared_spec')
 
 describe DataMapper::Adapters::PersevereAdapter do
 
@@ -200,34 +200,71 @@ describe DataMapper::Adapters::PersevereAdapter do
   
   end
 
-  # describe 'aggregates' do
-  # 
-  #   it_should_behave_like 'It Has Setup Resources'
-  # 
-  #   before :all do
-  #     @dragons   = Dragon.all
-  #     @countries = Country.all
-  #   end
-  # 
-  #   it_should_behave_like 'An Aggregatable Class'
-  # 
-  #   it "should be able to get a count of objects within a range of dates" do
-  #     Bozon.auto_migrate!
-  #     orig_date = DateTime.now - 7
-  #     Bozon.create(:author => 'Robbie', :created_at => orig_date, :title => '1 week ago')
-  #     Bozon.create(:author => 'Ivan',   :created_at => DateTime.now, :title => 'About Now')
-  #     Bozon.create(:author => 'Sean',   :created_at => DateTime.now + 7, :title => 'Sometime later')
-  # 
-  #     Bozon.count.should eql(3)
-  #     Bozon.count(:created_at => orig_date).should eql(1)
-  #     Bozon.count(:created_at.gt => orig_date).should eql(2)
-  #     Bozon.auto_migrate_down!
-  #   end
-  # 
-  #   it "should count with like conditions" do
-  #     Country.count(:name.like => '%n%').should == 4
-  #   end
-  # end
+  describe 'aggregates' do
+    before(:all) do
+      # A simplistic example, using with an Integer property
+      class ::Knight
+        include DataMapper::Resource
+
+        property :id,   Serial
+        property :name, String
+      end
+
+      class ::Dragon
+        include DataMapper::Resource
+
+        property :id,                Serial
+        property :name,              String
+        property :is_fire_breathing, Boolean
+        property :toes_on_claw,      Integer
+        property :birth_at,          DateTime
+        property :birth_on,          Date
+        property :birth_time,        Time
+
+        belongs_to :knight, :required => false
+      end
+
+      # A more complex example, with BigDecimal and Float properties
+      # Statistics taken from CIA World Factbook:
+      # https://www.cia.gov/library/publications/the-world-factbook/
+      class ::Country
+        include DataMapper::Resource
+
+        property :id,                  Serial
+        property :name,                String,  :required => true
+        property :population,          Integer
+        property :birth_rate,          Float,   :precision => 4,  :scale => 2
+        property :gold_reserve_tonnes, Float,   :precision => 6,  :scale => 2
+        property :gold_reserve_value,  Decimal, :precision => 15, :scale => 1  # approx. value in USD
+      end
+    end
+  
+    it_should_behave_like 'It Has Setup Resources'
+  
+    before :all do
+      @dragons   = Dragon.all
+      @countries = Country.all
+    end
+  
+    it_should_behave_like 'An Aggregatable Class'
+  
+    it "should be able to get a count of objects within a range of dates" do
+      Bozon.auto_migrate!
+      orig_date = DateTime.now - 7
+      Bozon.create(:author => 'Robbie', :created_at => orig_date, :title => '1 week ago')
+      Bozon.create(:author => 'Ivan',   :created_at => DateTime.now, :title => 'About Now')
+      Bozon.create(:author => 'Sean',   :created_at => DateTime.now + 7, :title => 'Sometime later')
+  
+      Bozon.count.should eql(3)
+      Bozon.count(:created_at => orig_date).should eql(1)
+      Bozon.count(:created_at.gt => orig_date).should eql(2)
+      Bozon.auto_migrate_down!
+    end
+  
+    it "should count with like conditions" do
+      Country.count(:name.like => '%n%').should == 4
+    end
+  end
 
   describe 'limiting and offsets' do
     before(:each) do
