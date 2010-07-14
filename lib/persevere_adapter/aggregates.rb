@@ -9,6 +9,8 @@ module DataMapper
           connect if @persevere.nil?
           resources = Array.new
 
+          query = Persevere.enhance(query)
+
           json_query, headers = query.to_json_query
           path = "/#{query.model.storage_name}/#{json_query}"
     
@@ -67,6 +69,6 @@ module DataMapper
         end
     end # module Aggregates
   end # module Persevere
-  
-  Aggregates::PersevereAdapter = DataMapper::Persevere::Aggregates
+
+  DataMapper::Persevere::Adapter.send(:include, DataMapper::Persevere::Aggregates)
 end # module DataMapper
