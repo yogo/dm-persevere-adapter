@@ -41,7 +41,7 @@ end
 To use with Rails, you can put this in your environment.rb:
   config.gem "dm-core"
   config.gem "data_objects"
-  config.gem "dm-persevere-adapter", :lib => 'persevere_adapter'
+  config.gem "dm-persevere-adapter", :require => nil
 
 With a database.yml:
 

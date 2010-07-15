@@ -13,4 +13,5 @@ group :development do
   gem "yard"
   gem "ruby-debug"
   gem "addressable"
+  gem "rake", :require => nil
 end
