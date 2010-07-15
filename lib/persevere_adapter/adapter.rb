@@ -251,7 +251,7 @@ module DataMapper
 
         resources.each do |resource|
           tblname = resource.model.storage_name
-          path = "/#{tblname}/#{resource.id}"
+          path = "/#{tblname}/#{resource.key.first}"
 
           DataMapper.logger.debug("(Delete) PATH/QUERY: #{path}")
 
