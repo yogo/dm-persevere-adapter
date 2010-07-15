@@ -4,3 +4,4 @@ coverage
 *.gemspec
 .rvmrc
 .DS_Store
+.bundle/*
