@@ -16,6 +16,7 @@ require 'dm/model'
 require 'dm/property'
 require 'dm/query'
 require 'dm/resource'
+require 'dm/repository'
 
 require 'persevere'
 
