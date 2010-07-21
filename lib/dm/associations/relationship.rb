@@ -15,7 +15,6 @@ module DataMapper
 
         case self
         when DataMapper::Associations::ManyToMany::Relationship
-#          puts "-> M:M #{child.storage_name}"
          relationship_schema = { "type"     => "array", 
                                  "dm_relation" => "many_to_many",
                                  "lazy"     => true,
@@ -25,7 +24,6 @@ module DataMapper
           }
           relationship_schema["maxItems"] = self.max if self.max != Infinity
         when DataMapper::Associations::OneToMany::Relationship 
-#          puts "-> 1:M #{child.storage_name}"
           relationship_schema = { "type"     => "array", 
                                   "dm_relation" => "has_n",
                                   "lazy"     => true,
@@ -35,13 +33,11 @@ module DataMapper
            }
            relationship_schema["maxItems"] = self.max if self.max != Infinity
          when DataMapper::Associations::ManyToOne::Relationship
-#           puts "-> M:1 #{parent.storage_name}"
            relationship_schema = { "type" => { "$ref" => "/Class/#{parent.storage_name}" }, 
                                    "dm_relation" => "belongs_to",
                                    "lazy" => true, 
                                    "optional" => true }
         when DataMapper::Associations::OneToOne::Relationship
-#          puts "-> 1:1 #{child.storage_name}"
           relationship_schema = { "type" => { "$ref" => "/Class/#{child.storage_name}" }, 
                                   "dm_relation" => "has_n",
                                   "lazy" => true, 
