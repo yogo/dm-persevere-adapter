@@ -40,7 +40,7 @@ module DataMapper
         resources = Array.new
 
         json_query, headers = query.to_json_query
-        path = "/#{query.model.storage_name}/#{json_query}"
+        path = "#{json_query}"
       
         response = @persevere.retrieve(path, headers)
 
@@ -161,7 +161,7 @@ module DataMapper
         # properties = model.properties_with_subclasses(name)
         properties = model.properties
         
-#        DataMapper.logger.debug("Upgrading #{model.name}")
+       DataMapper.logger.debug("Upgrading #{model.name}")
         
         if success = create_model_storage(model)
           return properties
@@ -270,7 +270,7 @@ module DataMapper
           # Invoke to_json_hash with a boolean to indicate this is a create
           # We might want to make this a post-to_json_hash cleanup instead
           payload = resource.to_json_hash.delete_if{|key,value| value.nil? }
-#          DataMapper.logger.debug("(Create) PATH/PAYLOAD: #{path} #{payload.inspect}")
+         DataMapper.logger.debug("(Create) PATH/PAYLOAD: #{path} #{payload.inspect}")
           response = @persevere.create(path, payload)
 
           # Check the response, this needs to be more robust and raise
@@ -333,7 +333,7 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.key.first}"
           payload = resource.to_json_hash
-#          DataMapper.logger.debug("(Update) PATH/PAYLOAD: #{path} #{payload.inspect}")
+         DataMapper.logger.debug("(Update) PATH/PAYLOAD: #{path} #{payload.inspect}")
           result = @persevere.update(path, payload)
 
           if result.code == "200"
@@ -365,7 +365,7 @@ module DataMapper
         
         json_query, headers = query.to_json_query
         
-        path = "/#{tblname}/#{json_query}"
+        path = "#{json_query}"
         DataMapper.logger.debug("(Read) PATH/QUERY: #{path}")
         
         response = @persevere.retrieve(path, headers)
@@ -453,7 +453,7 @@ module DataMapper
           tblname = resource.model.storage_name
           path = "/#{tblname}/#{resource.id}"
 
-#          DataMapper.logger.debug("(Delete) PATH/QUERY: #{path}")
+         DataMapper.logger.debug("(Delete) PATH/QUERY: #{path}")
 
           result = @persevere.delete(path)
 

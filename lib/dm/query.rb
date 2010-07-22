@@ -4,8 +4,9 @@ module DataMapper
     def munge_condition(condition)
       loaded_value = condition.loaded_value
       return_value = ""
-
-      if condition.subject.is_a?(DataMapper::Property)
+      subject = condition.subject 
+      
+      if subject.is_a?(DataMapper::Property)
         rhs = case loaded_value
         when String               then "\"#{loaded_value}\""
         when DateTime             then "date(%10.f)" % (Time.parse(loaded_value.to_s).to_f * 1000)
@@ -13,46 +14,22 @@ module DataMapper
         else                           loaded_value
         end
         return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}#{rhs}"
-      end
-
-     return_value = _fugly_munger(condition, loaded_value) if condition.subject.is_a?(DataMapper::Associations::Relationship)
-      return_value
-    end
-
-    def _fugly_munger(condition, loaded_value)
-      subject = condition.subject
-
-      case subject
-      # when DataMapper::Associations::ManyToMany::Relationship then
-      #   puts "M:M Query"
-      #   return_value = "#{condition.subject.field}.contains(/#{subject.child_model.storage_name}/#{loaded_value.key.first})"            
-      when DataMapper::Associations::OneToMany::Relationship then
-        puts "1:M Query"
-        return_value = "#{condition.subject.field}.contains(/#{subject.parent_model.storage_name}/#{loaded_value.key.first})"
-      when DataMapper::Associations::OneToOne::Relationship then 
-        puts "1:1 Query"
-        if loaded_value.nil?
-          return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}undefined"
-        else
-          return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}/#{subject.parent_model.storage_name}/#{loaded_value.key.first}"
-        end
-      when DataMapper::Associations::ManyToOne::Relationship then
-        puts "M:1 Query"
+      elsif subject.is_a?(DataMapper::Associations::ManyToOne::Relationship)
         if self.model != subject.child_model
-          return_value = "#{condition.subject.field}_id#{condition.__send__(:comparator_string)}#{loaded_value.key.first}"
+          return_value = "#{subject.child_key.first.name}#{condition.__send__(:comparator_string)}#{loaded_value.key.first}"
         else
           if loaded_value.nil?
-            return_value = "#{condition.subject.field}_id#{condition.__send__(:comparator_string)}undefined"
+            return_value = "#{subject.field}_id#{condition.__send__(:comparator_string)}undefined"
           else
-            return_value = "#{condition.subject.field}_id#{condition.__send__(:comparator_string)}#{loaded_value.key.first}"
+            return_value = "#{subject.field}_id#{condition.__send__(:comparator_string)}#{loaded_value.key.first}"
           end
         end
       end
+      return_value
     end
 
     ##
     def process_condition(condition)
-      puts "condition: #{condition}"
       case condition
         # Persevere 1.0 regular expressions are disable for security so we pass them back for DataMapper query filtering
         # without regular expressions, the like operator is inordinately challenging hence we pass it back
@@ -70,7 +47,7 @@ module DataMapper
         result_string = Array.new
         condition.value.to_a.each do |candidate|
           if condition.subject.is_a?(DataMapper::Associations::Relationship)
-            result_string << _fugly_munger(condition, candidate)
+            result_string << munge_condition(condition, candidate)
           else
             result_string << "#{condition.subject.name}=#{candidate}"
           end
@@ -103,53 +80,60 @@ module DataMapper
     #   The DataMapper query object passed in
     #
     # @api semipublic
-    def to_json_query
-
+    def to_json_query      
       # Body of main function
-      json_query = ""
+      if links.empty?
+        json_query = "/#{model.storage_name}/"
+      else
+        json_query = "/#{links[0].child_model.storage_name}/"
+      end
       query_terms = Array.new
       order_operations = Array.new
       field_ops = Array.new
       outfields = Array.new
       headers = Hash.new
-
+      
       query_terms << process_condition(conditions) 
 
       if query_terms.flatten.length != 0
         json_query += "[?#{query_terms.join("][?")}]"
       end
 
-      self.fields.each do |field|
-        if field.respond_to?(:operator)
-          field_ops << case field.operator
-          when :count then
-            if field.target.is_a?(DataMapper::Property)
-              "[?#{field.target.field}!=undefined].length"
-            else # field.target is all.
-              ".length"
-            end
-          when :min
-            if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
+      # debugger unless links.empty?
+      if links.empty?
+        self.fields.each do |field|
+          if field.respond_to?(:operator)
+            field_ops << case field.operator
+            when :count then
+              if field.target.is_a?(DataMapper::Property)
+                "[?#{field.target.field}!=undefined].length"
+              else # field.target is all.
+                ".length"
+              end
+            when :min
+              if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
+                "[=#{field.target.field}]"
+              else
+                ".min(?#{field.target.field})"
+              end
+            when :max
+              if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
+                "[=#{field.target.field}]"
+              else
+                ".max(?#{field.target.field})"
+              end
+            when :sum
+              ".sum(?#{field.target.field})"
+            when :avg
               "[=#{field.target.field}]"
-            else
-              ".min(?#{field.target.field})"
             end
-          when :max
-            if field.target.type == DateTime || field.target.type == Time || field.target.type == Date
-              "[=#{field.target.field}]"
-            else
-              ".max(?#{field.target.field})"
-            end
-          when :sum
-            ".sum(?#{field.target.field})"
-          when :avg
-            "[=#{field.target.field}]"
+          else
+            outfields << "'#{field.field}':#{field.field}"
           end
-        else
-          outfields << "'#{field.field}':#{field.field}"
         end
+      else
+        outfields << "'id':#{links[1].child_key.first.name}"
       end
-
       json_query += field_ops.join("")
 
       if order && order.any?
@@ -171,7 +155,6 @@ module DataMapper
       if offset != 0 || !limit.nil?
         headers.merge!( {"Range" => "items=#{offset}-#{limit}"} )
       end
-      # puts "#{inspect}"
       # puts json_query, headers
       return json_query, headers
     end
