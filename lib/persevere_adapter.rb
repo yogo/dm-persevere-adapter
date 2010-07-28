@@ -9,16 +9,11 @@ require 'extlib'
 require 'bigdecimal'
 require 'digest/md5'
 
-
 # Require Persevere http client
 require 'persevere_client'
 
-
 # Require in Adapter modules
 require 'persevere_adapter/query'
-# require 'persevere_adapter/associations/many_to_many.rb'
-# require 'persevere_adapter/associations/relationship.rb'
-require 'persevere_adapter/resource'
 
 require 'persevere_adapter/support/big_decimal'
 
