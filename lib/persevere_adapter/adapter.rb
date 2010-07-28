@@ -177,26 +177,10 @@ module DataMapper
             query.fields.each do |prop|
               object_reference = false
               pname = prop.field.to_s
-              if pname[-3,3] == "_id"
-                pname = pname[0..-4] 
-                object_reference = true
-              end
+
               value = rsrc_hash[pname]
               # Dereference references
               unless value.nil?
-                if value.is_a?(Hash)
-                  if value.has_key?("$ref")
-                    value = value["$ref"].split("/")[-1]
-                  end
-                elsif value.is_a?(Array)
-                  value = value.map do |v| 
-                    if v.has_key?("$ref")
-                      v = v["$ref"].split("/")[-1]
-                    else
-                      v
-                    end
-                  end
-                end
                 if prop.field == 'id'
                   rsrc_hash[pname]  = prop.typecast(value.to_s.match(/(#{tblname})?\/?([a-zA-Z0-9_-]+$)/)[2])
                 else
@@ -311,7 +295,6 @@ module DataMapper
           end
         end
         
-        scrub_schema(schema_hash['properties'])
         properties = schema_hash.delete('properties')
         schema_hash['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
         schema_hash.delete_if{|key,value| value.nil? }
@@ -330,7 +313,6 @@ module DataMapper
       def update_schema(schema_hash, project = nil)
         id = schema_hash['id']
         payload = schema_hash.reject{|key,value| key.to_sym.eql?(:id) }
-        scrub_schema(payload['properties'])
         payload['extends'] = { "$ref" => "/Class/Versioned" } if @options[:versioned]
 
         if project.nil?
@@ -430,20 +412,6 @@ module DataMapper
         end
       end
 
-      def scrub_data(json_hash)
-        items = [DataMapper::Model.descendants.map{|c| "#{c.name.downcase}_id"}].flatten
-        items.each { |item| json_hash.delete(item) if json_hash.has_key?(item) }
-        json_hash.reject! { |k,v| v.nil? }
-        json_hash
-      end
-      
-      ##
-      # 
-      def scrub_schema(json_hash)
-        items = [DataMapper::Model.descendants.map{|c| "#{c.name.downcase}_id"}, 'id'].flatten
-        items.each { |item| json_hash.delete(item) if json_hash.has_key?(item) }
-        json_hash
-      end
 
       def check_schemas
         schemas = @persevere.retrieve("/Class").body
