@@ -13,7 +13,8 @@ module DataMapper
 
           json_query, headers = query.to_json_query
           path = "/#{query.model.storage_name}/#{json_query}"
-    
+          DataMapper.logger.debug("--> PATH/QUERY/HEADERS: #{path} #{headers.inspect}")
+          
           response = @persevere.retrieve(path, headers)
 
           if response.code == "200"
@@ -42,7 +43,7 @@ module DataMapper
           values = JSON.parse("[#{value}]").flatten.compact
           if values.is_a?(Array)
             values.map! { |v| property.typecast(v) }
-            return values.sort[0].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.type == DateTime
+            return values.sort[0].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.kind_of?(DataMapper::Property::DateTime)
             return values.sort[0]
           end
           property.typecast(value)
@@ -52,7 +53,7 @@ module DataMapper
           values = JSON.parse("[#{value}]").flatten.compact
           if values.is_a?(Array)
             values.map! { |v| property.typecast(v) }
-            return values.sort[-1].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.type == DateTime
+            return values.sort[-1].new_offset(Rational(Time.now.getlocal.gmt_offset/3600, 24)) if property.kind_of?(DataMapper::Property::DateTime)
             return values.sort[-1]
           end
           property.typecast(value)
@@ -61,7 +62,7 @@ module DataMapper
         def avg(property, value)
           values = JSON.parse(value).compact
           result = values.inject(0.0){|sum,i| sum+=i }/values.length
-          property.type == Integer ? result.to_f : property.typecast(result)
+          property.kind_of?(DataMapper::Property::Integer) ? result.to_f : property.typecast(result)
         end
     
         def sum(property, value)
