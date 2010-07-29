@@ -2,6 +2,9 @@ module DataMapper
   module Persevere
     module Query
       ##
+      # TODO: Clean this mess up.
+      # 
+      # @author lamb
       def munge_condition(condition)
         loaded_value = condition.loaded_value
         return_value = ""
@@ -16,15 +19,18 @@ module DataMapper
           end
           return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}#{rhs}"
         elsif subject.is_a?(DataMapper::Associations::ManyToOne::Relationship)
-
           # Join relationship, bury it down!
           if self.model != subject.child_model
             my_side_of_join = links.select{|relation| 
               relation.kind_of?(DataMapper::Associations::ManyToOne::Relationship) &&
               relation.child_model == subject.child_model &&
-              relation.parent_model == self.model }.first
+              # I would really like this to not look at the name, 
+              # but sometimes they are different object of the same model
+              relation.parent_model.name == self.model.name }.first
               
-            join_results = subject.child_model.all(subject.field.to_sym => loaded_value)
+            # join_results = subject.child_model.all(subject.field.to_sym => loaded_value)
+            join_results = subject.child_model.all(subject.child_key.first.name => loaded_value[subject.parent_key.first.name])
+            
             return_value = join_results.map{|r| "#{self.model.key.first.name}=#{r[my_side_of_join.child_key.first.name]}"}.join('|')
           else
             comparator = loaded_value.nil? ? 'undefined' : loaded_value.key.first
@@ -97,17 +103,10 @@ module DataMapper
         # Body of main function
 
         json_query = ''
-        query_terms = Array.new
-        order_operations = Array.new
         field_ops = Array.new
         outfields = Array.new
-        headers = Hash.new
-
-        query_terms << process_condition(conditions) 
-
-        if query_terms.flatten.length != 0
-          json_query += "[?#{query_terms.join("][?")}]"
-        end
+        
+        json_query += self.to_json_query_filter
 
         self.fields.each do |field|
           if field.respond_to?(:operator)
@@ -146,6 +145,37 @@ module DataMapper
 
         json_query += field_ops.join("")
 
+        json_query += self.to_json_query_ordering
+
+        json_query += "[={" + outfields.join(',') + "}]" unless outfields.empty?
+
+
+        # puts json_query, headers
+        return json_query, self.json_query_headers
+      end
+      
+      ##
+      # The filter portion on a json query
+      # 
+      # @author lamb
+      def to_json_query_filter
+        query_terms = []
+        query_terms << process_condition(conditions) 
+
+        if query_terms.flatten.length != 0
+          return "[?#{query_terms.join("][?")}]"
+        else
+          return ''
+        end
+        
+      end
+      
+      ##
+      # The ordering portion of a json query
+      # 
+      # @author lamb
+      def to_json_query_ordering
+        order_operations = []
         if order && order.any?
           order.map do |direction|
             order_operations << case direction.operator
@@ -155,19 +185,24 @@ module DataMapper
           end
         end
 
-        json_query += order_operations.join("")
-
-        json_query += "[={" + outfields.join(',') + "}]" unless outfields.empty?
-
+        order_operations.join("")
+      end
+      
+      ##
+      # The headers of a json query
+      # 
+      # @author lamb
+      def json_query_headers
+        headers = Hash.new
         offset = self.offset.to_i
         limit = self.limit.nil? ? nil : self.limit.to_i + offset - 1
 
         if offset != 0 || !limit.nil?
           headers.merge!( {"Range" => "items=#{offset}-#{limit}"} )
         end
-        # puts json_query, headers
-        return json_query, headers
+        return headers
       end
+      
     end # Query
   end # Persevere
 end # DataMapper
