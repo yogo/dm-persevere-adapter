@@ -6,7 +6,7 @@ module DataMapper
         loaded_value = condition.loaded_value
         return_value = ""
         subject = condition.subject 
-
+        
         if subject.is_a?(DataMapper::Property)
           rhs = case loaded_value
           when String               then "\"#{loaded_value}\""
@@ -15,15 +15,27 @@ module DataMapper
           else                           loaded_value
           end
           return_value = "#{condition.subject.field}#{condition.__send__(:comparator_string)}#{rhs}"
+        elsif subject.is_a?(DataMapper::Associations::ManyToOne::Relationship)
+
+          # Join relationship, bury it down!
+          if self.model != subject.child_model
+            my_side_of_join = links.select{|relation| 
+              relation.kind_of?(DataMapper::Associations::ManyToOne::Relationship) &&
+              relation.child_model == subject.child_model &&
+              relation.parent_model == self.model }.first
+              
+            join_results = subject.child_model.all(subject.field.to_sym => loaded_value)
+            return_value = join_results.map{|r| "#{self.model.key.first.name}=#{r[my_side_of_join.child_key.first.name]}"}.join('|')
+          else
+            comparator = loaded_value.nil? ? 'undefined' : loaded_value.key.first
+            return_value = "#{subject.child_key.first.name}#{condition.__send__(:comparator_string)}#{comparator}"
+          end
         elsif subject.is_a?(DataMapper::Associations::Relationship)
           if self.model != subject.child_model
             return_value = "#{subject.child_key.first.name}#{condition.__send__(:comparator_string)}#{loaded_value.key.first}"
           else
-            if loaded_value.nil?
-              return_value = "#{subject.field}_id#{condition.__send__(:comparator_string)}undefined"
-            else
-              return_value = "#{subject.field}_id#{condition.__send__(:comparator_string)}#{loaded_value.key.first}"
-            end
+            comparator = loaded_value.nil? ? 'undefined' : loaded_value.key.first
+            return_value = "#{subject.field}_id#{condition.__send__(:comparator_string)}#{comparator}"
           end
         end
         return_value
@@ -48,7 +60,7 @@ module DataMapper
           result_string = Array.new
           condition.value.to_a.each do |candidate|
             if condition.subject.is_a?(DataMapper::Associations::Relationship)
-              result_string << munge_condition(condition, candidate)
+              result_string << "#{condition.subject.child_key.first.name}=#{candidate.key.first}" #munge_condition(condition)
             else
               result_string << "#{condition.subject.name}=#{candidate}"
             end
@@ -97,45 +109,41 @@ module DataMapper
           json_query += "[?#{query_terms.join("][?")}]"
         end
 
-        # debugger unless links.empty?
-        if links.empty?
-          self.fields.each do |field|
-            if field.respond_to?(:operator)
-              field_ops << case field.operator
-              when :count then
-                if field.target.is_a?(DataMapper::Property)
-                  "[?#{field.target.field}!=undefined].length"
-                else # field.target is all.
-                  ".length"
-                end
-              when :min
-                if field.target.kind_of?(DataMapper::Property::DateTime) || 
-                  field.target.kind_of?(DataMapper::Property::Time) || 
-                  field.target.kind_of?(DataMapper::Property::Date)
-                  "[=#{field.target.field}]"
-                else
-                  ".min(?#{field.target.field})"
-                end
-              when :max
-                if field.target.kind_of?(DataMapper::Property::DateTime) || 
-                  field.target.kind_of?(DataMapper::Property::Time) || 
-                  field.target.kind_of?(DataMapper::Property::Date)
-                  "[=#{field.target.field}]"
-                else
-                  ".max(?#{field.target.field})"
-                end
-              when :sum
-                ".sum(?#{field.target.field})"
-              when :avg
-                "[=#{field.target.field}]"
+        self.fields.each do |field|
+          if field.respond_to?(:operator)
+            field_ops << case field.operator
+            when :count then
+              if field.target.is_a?(DataMapper::Property)
+                "[?#{field.target.field}!=undefined].length"
+              else # field.target is all.
+                ".length"
               end
-            else
-              outfields << "'#{field.field}':#{field.field}"
+            when :min
+              if field.target.kind_of?(DataMapper::Property::DateTime) || 
+                field.target.kind_of?(DataMapper::Property::Time) || 
+                field.target.kind_of?(DataMapper::Property::Date)
+                "[=#{field.target.field}]"
+              else
+                ".min(?#{field.target.field})"
+              end
+            when :max
+              if field.target.kind_of?(DataMapper::Property::DateTime) || 
+                field.target.kind_of?(DataMapper::Property::Time) || 
+                field.target.kind_of?(DataMapper::Property::Date)
+                "[=#{field.target.field}]"
+              else
+                ".max(?#{field.target.field})"
+              end
+            when :sum
+              ".sum(?#{field.target.field})"
+            when :avg
+              "[=#{field.target.field}]"
             end
+          else
+            outfields << "'#{field.field}':#{field.field}"
           end
-        else
-          outfields << "'id':#{links[1].child_key.first.name}"
         end
+
         json_query += field_ops.join("")
 
         if order && order.any?
