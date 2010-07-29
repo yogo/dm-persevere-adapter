@@ -102,7 +102,7 @@ describe DataMapper::Adapters::PersevereAdapter do
    end
 
   it_should_behave_like 'An Adapter'
-
+  
   describe 'migrations' do
   
     it 'should create the Bozon storage' do
@@ -199,20 +199,20 @@ describe DataMapper::Adapters::PersevereAdapter do
     end
   
   end
-
+  
   describe 'aggregates' do
     before(:all) do
       # A simplistic example, using with an Integer property
       class ::Knight
         include DataMapper::Resource
-
+  
         property :id,   Serial
         property :name, String
       end
-
+  
       class ::Dragon
         include DataMapper::Resource
-
+  
         property :id,                Serial
         property :name,              String
         property :is_fire_breathing, Boolean
@@ -220,16 +220,16 @@ describe DataMapper::Adapters::PersevereAdapter do
         property :birth_at,          DateTime
         property :birth_on,          Date
         property :birth_time,        Time
-
+  
         belongs_to :knight, :required => false
       end
-
+  
       # A more complex example, with BigDecimal and Float properties
       # Statistics taken from CIA World Factbook:
       # https://www.cia.gov/library/publications/the-world-factbook/
       class ::Country
         include DataMapper::Resource
-
+  
         property :id,                  Serial
         property :name,                String,  :required => true
         property :population,          Integer
@@ -265,7 +265,7 @@ describe DataMapper::Adapters::PersevereAdapter do
       Country.count(:name.like => '%n%').should == 4
     end
   end
-
+  
   describe 'limiting and offsets' do
     before(:each) do
       Bozon.auto_migrate!
@@ -396,148 +396,137 @@ describe DataMapper::Adapters::PersevereAdapter do
   end
   
   describe 'associations' do
-  
-    before(:each) do
-      DataMapper::Logger.new(STDOUT, :debug)
-      
-      Bozon.auto_migrate!
-      Nugaton.auto_migrate!
-    end
-    
-    it "should create one to one (has 1) associations between models" do    
-      # Add the relationships
-      Bozon.has(1, :nugaton)
-      Nugaton.belongs_to(:bozon)
-    
-      # Push them to the repository
-      Bozon.auto_upgrade!
-      Nugaton.auto_upgrade!
-      
-      # Create a couple to make sure they are working
-      bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-      nugat = Nugaton.new(:name => "numero uno")
-                  
-      bozon.nugaton = nugat
-      bozon.save
-      
-      # This is where we're getting what we want, but have to cope with it in the adapter.
-      # As in Nugaton => Bozon is a real bozon, not just a reference...
-      Bozon.first.nugaton.id.should eql nugat.id
-      Nugaton.first.bozon.id.should eql bozon.id
-    end
-    
-    it "should not be required to be in a relationship" do
-      Bozon.has(Infinity, :nugatons)
-      Nugaton.belongs_to(:bozon, :required => false)
-      
-      Bozon.auto_upgrade!
-      Nugaton.auto_upgrade!
-      
-      bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
-    
-      nugat1 = Nugaton.new(:name => "numero uno")
-      nugat2 = Nugaton.new(:name => "numero duo")
-      
-      bozon.nugatons.push( nugat1 )
-      bozon.save
-      
-      nugat2.save
-      
-      Nugaton.all(:bozon => bozon).length.should eql 1
-      Nugaton.all(:bozon => nil).length.should eql 1
-      
-    end
-    
-    it "should create one to many (has n) associations between models" do
-      Bozon.has(Infinity, :nugatons)
-      Nugaton.belongs_to(:bozon)
-      Bozon.auto_upgrade!
-      Nugaton.auto_upgrade!
-    
-      bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-      nugat1 = Nugaton.new(:name => "numero uno")
-      nugat2 = Nugaton.new(:name => "numero duo")
-    
-      bozon.nugatons.push(nugat1, nugat2)
-      bozon.save
-    
-      Bozon.first.nugatons.length.should eql 2
-    end
-    
-    it "should create many to one (belongs_to) associations between models" do
-      # Add the relationships
-      Nugaton.belongs_to(:bozon)
-  
-      # Push them to the repository
-      Nugaton.auto_upgrade!
-  
-      # Create a couple to make sure they are working
-      bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-      nugat1 = Nugaton.new(:name => "numero uno")
-      nugat2 = Nugaton.new(:name => "numero duo")
-  
-      nugat1.bozon = bozon
-      nugat1.save
-      nugat2.bozon = bozon
-      nugat2.save
-            
-      Nugaton.first.bozon.should be_kind_of(Bozon)
-      Nugaton[1].bozon.should be_kind_of(Bozon)
-    end
-  
+   
+     before(:each) do
+       Bozon.auto_migrate!
+       Nugaton.auto_migrate!
+     end
+     
+     it "should create one to one (has 1) associations between models" do    
+       # Add the relationships
+       Bozon.has(1, :nugaton)
+       Nugaton.belongs_to(:bozon)
+     
+       # Push them to the repository
+       Bozon.auto_upgrade!
+       Nugaton.auto_upgrade!
+       
+       # Create a couple to make sure they are working
+       bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+       nugat = Nugaton.new(:name => "numero uno")
+                   
+       bozon.nugaton = nugat
+       bozon.save
+       
+       # This is where we're getting what we want, but have to cope with it in the adapter.
+       # As in Nugaton => Bozon is a real bozon, not just a reference...
+       Bozon.first.nugaton.id.should eql nugat.id
+       Nugaton.first.bozon.id.should eql bozon.id
+     end
+     
+     it "should not be required to be in a relationship" do
+       Bozon.has(Infinity, :nugatons)
+       Nugaton.belongs_to(:bozon, :required => false)
+       
+       Bozon.auto_upgrade!
+       Nugaton.auto_upgrade!
+       
+       bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
+     
+       nugat1 = Nugaton.new(:name => "numero uno")
+       nugat2 = Nugaton.new(:name => "numero duo")
+       
+       bozon.nugatons.push( nugat1 )
+       bozon.save
+       
+       nugat2.save
+       
+       Nugaton.all(:bozon => bozon).length.should eql 1
+       Nugaton.all(:bozon => nil).length.should eql 1
+       
+     end
+     
+     it "should create one to many (has n) associations between models" do
+       Bozon.has(Infinity, :nugatons)
+       Nugaton.belongs_to(:bozon)
+       Bozon.auto_upgrade!
+       Nugaton.auto_upgrade!
+     
+       bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+       nugat1 = Nugaton.new(:name => "numero uno")
+       nugat2 = Nugaton.new(:name => "numero duo")
+     
+       bozon.nugatons.push(nugat1, nugat2)
+       bozon.save
+     
+       Bozon.first.nugatons.length.should eql 2
+     end
+     
+     it "should create many to one (belongs_to) associations between models" do
+       # Add the relationships
+       Nugaton.belongs_to(:bozon)
+        
+       # Push them to the repository
+       Nugaton.auto_upgrade!
+        
+       # Create a couple to make sure they are working
+       bozon = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
+       nugat1 = Nugaton.new(:name => "numero uno")
+       nugat2 = Nugaton.new(:name => "numero duo")
+        
+       nugat1.bozon = bozon
+       nugat1.save
+       nugat2.bozon = bozon
+       nugat2.save
+             
+       Nugaton.first.bozon.should be_kind_of(Bozon)
+       Nugaton[1].bozon.should be_kind_of(Bozon)
+     end
+
     describe 'many to many relationships' do
+      before(:all) do
+        @associations_added = false
+      end
+      before(:each) do
+        if(not @associations_added)
+          Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
+          Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
+          Bozon.auto_migrate!
+          Nugaton.auto_migrate!
+          BozonNugaton.auto_migrate!
+          @associations_added = true
+        end
+      
+      end
+      
+      after(:each) do
+        Bozon.auto_migrate!
+        Nugaton.auto_migrate!
+        BozonNugaton.auto_migrate!
+      end
+        
       it "should be able to be created between models" do
-        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
-        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
-        Bozon.auto_upgrade!
-        Nugaton.auto_upgrade!        
-    
         bozon1 = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
         bozon2 = Bozon.new(:author => 'Ivan', :created_at => DateTime.now - 5, :title => '5 days ago')
-    
+          
         nugat1 = Nugaton.new(:name => "numero uno")
         nugat2 = Nugaton.new(:name => "numero duo")
       
         bozon1.nugatons << nugat1
         bozon1.nugatons << nugat2
-            
+           
         bozon1.save
-    
+          
         bozon2.nugatons.push(nugat1,nugat2)
         bozon2.save
-              
+        
         Bozon.first.nugatons.length.should eql 2
         Nugaton.first.bozons.length.should eql 2
-      end
-    
-      it "should be updated when resources are deleted" do
-        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
-        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
-        Bozon.auto_upgrade!
-        Nugaton.auto_upgrade!        
-    
-        bozon1 = Bozon.new(:author => 'Robbie', :created_at => DateTime.now - 7, :title => '1 week ago')
-        bozon2 = Bozon.new(:author => 'Ivan', :created_at => DateTime.now - 5, :title => '5 days ago')
-    
-        nugat1 = Nugaton.new(:name => "numero uno")
-        nugat2 = Nugaton.new(:name => "numero duo")
-      
-        bozon1.nugatons << nugat1
-        bozon1.nugatons << nugat2
-        bozon1.save
-    
-        bozon2.nugatons.push(nugat1,nugat2)
-        bozon2.save   
-      end
-    
-      it "should remove resources from both sides of the relationship" do
-        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
-        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
-        Bozon.auto_upgrade!
-        Nugaton.auto_upgrade!
-      
+      # end
+
+      # it "should remove resources from both sides of the relationship" do
         bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
-    
+            
         nugat1 = Nugaton.new(:name => "numero uno")
         nugat2 = Nugaton.new(:name => "numero duo")
       
@@ -549,18 +538,13 @@ describe DataMapper::Adapters::PersevereAdapter do
         nugat1.save
       
         bozon.nugatons.should_not include(nugat1)
+
         nugat1.bozons.should be_empty
-      
-        Bozon.first.nugatons.length.should be(1)
-      end
-  
-      it "should not remove the remaining resources from both sides of the relationship when a single resource is removed" do
-        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
-        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
-  
-        Bozon.auto_upgrade!
-        Nugaton.auto_upgrade!
-      
+
+        Bozon.get(bozon.id).nugatons.length.should be(1)
+      # end
+         
+      # it "should not remove the remaining resources from both sides of the relationship when a single resource is removed" do
         bozon1 = Bozon.create(:author => 'Jade', :title => "Jade's the author")
         bozon2 = Bozon.create(:author => 'Ivan', :title => "Blow up the world!")
         nugat1 = Nugaton.new(:name => "numero uno")
@@ -568,14 +552,14 @@ describe DataMapper::Adapters::PersevereAdapter do
       
         bozon1.nugatons.push(nugat1, nugat2)
         bozon1.save
-  
+          
         bozon2.nugatons = [nugat1,nugat2]
         bozon2.save
       
         bozon1.nugatons.delete(nugat1)
         bozon1.save
       
-        # Bozon1 should have only nugaton2        
+        # Bozon1 should have only nugaton2
         Bozon.get(bozon1.id).nugatons.length.should eql 1
         Bozon.get(bozon1.id).nugatons.should_not include(nugat1)
         Bozon.get(bozon1.id).nugatons.should include(nugat2)
@@ -595,24 +579,19 @@ describe DataMapper::Adapters::PersevereAdapter do
         Nugaton.get(nugat2.id).bozons.should include(bozon1)
         Nugaton.get(nugat2.id).bozons.should include(bozon2)
       end      
-  
+            
       it "should non-destructively add a second resource" do
-        Bozon.has(Infinity, :nugatons, {:through => DataMapper::Resource})
-        Nugaton.has(Infinity, :bozons, {:through => DataMapper::Resource})
-        Bozon.auto_upgrade!
-        Nugaton.auto_upgrade!
-  
         bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
-    
+            
         nugat1 = Nugaton.create(:name => "numero uno")
         nugat2 = Nugaton.create(:name => "numero duo")
-      
+        
         nugat1.bozons << bozon
         nugat1.save
         n = Nugaton.get(nugat2.id)
-        n.bozons << Bozon.first
+        n.bozons << Bozon.get(bozon.id)
         n.save
-  
+         
         Bozon.get(bozon.id).nugatons.length.should eql 2
       end
     end
