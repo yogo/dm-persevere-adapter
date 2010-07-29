@@ -223,6 +223,7 @@ module DataMapper
       #
       # @api semipublic
       def delete(query)
+
         connect if @persevere.nil?
 
         deleted = 0
@@ -235,8 +236,19 @@ module DataMapper
 
         resources.each do |resource|
           tblname = resource.model.storage_name
-          path = "/#{tblname}/#{resource.key.first}"
-
+          id = resource.attributes(:field)['id']
+          
+          # Retrieve the ID from persever if the resource doesn't have an ID field
+          if id.nil?
+            query = Persevere.enhance(resource.query)
+            path = "/#{tblname}/#{query.to_json_query_filter}[={'id':id}]"
+            response = @persevere.retrieve(path, {})
+            id = JSON.parse(response.body)[0]['id'].match(/(\w+\/)*(\d+)/)[2]
+          end
+          
+          path = "/#{tblname}/#{id}"
+          # path = "/#{tblname}/#{resource.key.first}"
+          
           DataMapper.logger.debug("(Delete) PATH/QUERY: #{path}")
 
           result = @persevere.delete(path)
