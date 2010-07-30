@@ -5,7 +5,6 @@ require 'dm-types'
 require 'dm-migrations'
 require 'dm-migrations/auto_migration'
 require 'dm-validations'
-require 'extlib'
 require 'bigdecimal'
 require 'digest/md5'
 
