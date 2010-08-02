@@ -9,7 +9,6 @@ require 'ruby-debug'
 Debugger.start
 
 require 'dm-core'
-require 'extlib'
 
 def path_to(gem_name, version=nil)
   version = version ? Gem::Requirement.create(version) : Gem::Requirement.default
