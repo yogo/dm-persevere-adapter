@@ -7,6 +7,8 @@ require path_in_gem("dm-aggregates", 'spec', 'public', 'shared', 'aggregate_shar
 describe DataMapper::Adapters::PersevereAdapter do
 
   before :all do
+    # DataMapper::Logger.new(STDOUT, :debug)
+    
     @adapter = DataMapper.setup(:default,  { 
       :adapter => 'persevere', 
       :host => 'localhost', 
@@ -526,7 +528,7 @@ describe DataMapper::Adapters::PersevereAdapter do
 
       # it "should remove resources from both sides of the relationship" do
         bozon = Bozon.create(:author => 'Jade', :title => "Jade's the author")
-            
+        
         nugat1 = Nugaton.new(:name => "numero uno")
         nugat2 = Nugaton.new(:name => "numero duo")
       
@@ -552,7 +554,6 @@ describe DataMapper::Adapters::PersevereAdapter do
       
         bozon1.nugatons.push(nugat1, nugat2)
         bozon1.save
-          
         bozon2.nugatons = [nugat1,nugat2]
         bozon2.save
       
@@ -578,6 +579,8 @@ describe DataMapper::Adapters::PersevereAdapter do
         Nugaton.get(nugat2.id).bozons.length.should eql 2
         Nugaton.get(nugat2.id).bozons.should include(bozon1)
         Nugaton.get(nugat2.id).bozons.should include(bozon2)
+        
+        ::BozonNugaton.auto_migrate_down!
       end      
             
       it "should non-destructively add a second resource" do
@@ -591,8 +594,9 @@ describe DataMapper::Adapters::PersevereAdapter do
         n = Nugaton.get(nugat2.id)
         n.bozons << Bozon.get(bozon.id)
         n.save
-         
         Bozon.get(bozon.id).nugatons.length.should eql 2
+        
+        ::BozonNugaton.auto_migrate_down!
       end
     end
   end
